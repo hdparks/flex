@@ -1,14 +1,4 @@
-const getApiUrl = () => {
-  if (typeof window === 'undefined') return process.env.FLEX_PUBLIC_API_URL || 'http://localhost:4001/api';
-
-  // This hack lets me test stuff out on the same machine running the front+backend. It gets confused if I tell it its own local network address instead of just "localhost"
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://localhost:4001/api';
-  }
-  return process.env.FLEX_PUBLIC_API_URL || 'http://localhost:4001/api';
-};
-
-const API_URL = getApiUrl();
+const API_URL = '/api';
 
 function getToken() {
   if (typeof window === 'undefined') return null;
@@ -64,7 +54,7 @@ export const api = {
   },
   workouts: {
     list: () => request('/workouts'),
-    my: () => request('/workouts/my'),
+    my: () => request('/workouts?my=true'),
     get: (id) => request(`/workouts/${id}`),
     create: (data) => request('/workouts', { method: 'POST', body: JSON.stringify(data) }),
     delete: (id) => request(`/workouts/${id}`, { method: 'DELETE' }),
@@ -74,16 +64,16 @@ export const api = {
   },
   team: {
     get: () => request('/team'),
-    create: (name) => request('/team/create', { method: 'POST', body: JSON.stringify({ name }) }),
-    join: (inviteCode) => request('/team/join', { method: 'POST', body: JSON.stringify({ invite_code: inviteCode }) }),
-    leave: (teamId) => request(`/team/${teamId}/leave`, { method: 'DELETE' }),
+    create: (name) => request('/team', { method: 'POST', body: JSON.stringify({ name }) }),
+    join: (inviteCode) => request('/team', { method: 'POST', body: JSON.stringify({ invite_code: inviteCode }) }),
+    leave: (teamId) => request(`/team/${teamId}?action=leave`, { method: 'DELETE' }),
     disband: (teamId) => request(`/team/${teamId}`, { method: 'DELETE' }),
-    feed: () => request('/team/feed'),
+    feed: () => request('/team?feed=true'),
   },
   push: {
-    getPublicKey: () => request('/push/public-key'),
-    subscribe: (subscription) => request('/push/subscribe', { method: 'POST', body: JSON.stringify({ subscription }) }),
-    unsubscribe: (endpoint) => request('/push/unsubscribe', { method: 'POST', body: JSON.stringify({ endpoint }) }),
+    getPublicKey: () => request('/push'),
+    subscribe: (subscription) => request('/push', { method: 'POST', body: JSON.stringify({ subscription }) }),
+    unsubscribe: (endpoint) => request('/push', { method: 'POST', body: JSON.stringify({ endpoint }) }),
   },
   getToken,
   setToken,
