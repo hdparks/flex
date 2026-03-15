@@ -6,8 +6,8 @@ import { authMiddleware } from '../auth.js';
 
 const router = Router();
 
-const publicKey = 'BNkaI0347Or6qiX932B_rs0coo-v1uf_uZ-XTQu5UkAlcRB-frY-Utw6jphtcUqmlro5BC4Kv3diUpVNZO39vCY';
-const privateKey = 'hUAylns4294qXWrGIuB8auUftHmGnY4Ebj7glC94yOk';
+const publicKey = process.env.VAPID_PUBLIC_KEY;
+const privateKey = process.env.VAPID_PRIVATE_KEY;
 
 webpush.setVapidDetails(
   'mailto:admin@flex.app',

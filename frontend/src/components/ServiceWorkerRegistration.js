@@ -36,7 +36,11 @@ export default function ServiceWorkerRegistration() {
         const existingSub = await registration.pushManager.getSubscription();
         if (existingSub) return;
 
-        const { publicKey } = await api.push.getPublicKey();
+        let publicKey = process.env.NEXT_PUBLIC_VAPID_KEY;
+        if (!publicKey) {
+          const { publicKey: serverKey } = await api.push.getPublicKey();
+          publicKey = serverKey;
+        }
         const subscription = await subscribeToPush(registration, publicKey);
         await api.push.subscribe(subscription);
         console.log('Push subscribed');
