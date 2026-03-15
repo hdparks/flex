@@ -46,7 +46,7 @@ router.post('/create', authMiddleware, (req, res) => {
       return res.status(400).json({ error: 'Team name required' });
     }
 
-    const existing = db.prepare('SELECT id FROM team_members WHERE user_id = ?').get(req.user.id);
+    const existing = db.prepare('SELECT 1 FROM team_members WHERE user_id = ?').get(req.user.id);
     if (existing) {
       return res.status(400).json({ error: 'You are already in a team' });
     }
@@ -67,7 +67,7 @@ router.post('/create', authMiddleware, (req, res) => {
     const team = db.prepare('SELECT * FROM teams WHERE id = ?').get(teamId);
     res.status(201).json({ ...team, members: [{ user_id: req.user.id, role: 'admin' }] });
   } catch (err) {
-    console.error(err);
+    console.error('Team create error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -80,7 +80,7 @@ router.post('/join', authMiddleware, (req, res) => {
       return res.status(400).json({ error: 'Invite code required' });
     }
 
-    const existing = db.prepare('SELECT id FROM team_members WHERE user_id = ?').get(req.user.id);
+    const existing = db.prepare('SELECT 1 FROM team_members WHERE user_id = ?').get(req.user.id);
     if (existing) {
       return res.status(400).json({ error: 'You are already in a team' });
     }
