@@ -55,20 +55,8 @@ export const api = {
     create: (data) => request('/workouts', { method: 'POST', body: JSON.stringify(data) }),
     delete: (id) => request(`/workouts/${id}`, { method: 'DELETE' }),
   },
-  goals: {
-    list: () => request('/goals'),
-    create: (data) => request('/goals', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id, data) => request(`/goals/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-    delete: (id) => request(`/goals/${id}`, { method: 'DELETE' }),
-  },
   cheers: {
     create: (workoutId, message) => request('/cheers', { method: 'POST', body: JSON.stringify({ workout_id: workoutId, message }) }),
-  },
-  wins: {
-    list: () => request('/wins'),
-    my: () => request('/wins/my'),
-    create: (data) => request('/wins', { method: 'POST', body: JSON.stringify(data) }),
-    delete: (id) => request(`/wins/${id}`, { method: 'DELETE' }),
   },
   team: {
     get: () => request('/team'),

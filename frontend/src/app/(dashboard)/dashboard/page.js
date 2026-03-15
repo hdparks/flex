@@ -52,7 +52,7 @@ export default function Dashboard() {
             <div>
               <div style={{ fontWeight: '600' }}>{item.username}</div>
               <div className="timestamp">
-                {item.type === 'workout' ? 'completed a workout' : 'achieved a win!'} • {formatDate(item.achieved_at || item.completed_at || item.created_at)}
+                completed a workout • {formatDate(item.completed_at || item.created_at)}
               </div>
             </div>
           </div>
@@ -65,13 +65,6 @@ export default function Dashboard() {
               {item.duration_minutes && (
                 <p style={{ color: 'var(--primary)', marginTop: '0.5rem' }}>⏱️ {item.duration_minutes} min</p>
               )}
-            </div>
-          )}
-          
-          {item.type === 'win' && (
-            <div>
-              <h3 style={{ color: 'var(--success)', marginTop: '0.5rem' }}>🏆 {item.title}</h3>
-              {item.description && <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>{item.description}</p>}
             </div>
           )}
         </div>

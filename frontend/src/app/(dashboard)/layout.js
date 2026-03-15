@@ -6,8 +6,6 @@ import { api } from '../../lib/api';
 const navItems = [
   { href: '/dashboard', icon: '🏠', label: 'Feed' },
   { href: '/workouts', icon: '💪', label: 'Workouts' },
-  { href: '/goals', icon: '🎯', label: 'Goals' },
-  { href: '/wins', icon: '🏆', label: 'Wins' },
   { href: '/team', icon: '👥', label: 'Team' },
 ];
 
@@ -43,7 +41,7 @@ export default function DashboardLayout({ children }) {
       <header className="header">
         <div>
           <h1>Hey, {user.username}!</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Let's crush those goals</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Let's get moving</p>
         </div>
         <button onClick={handleLogout} className="btn-ghost" style={{ padding: '0.5rem' }}>
           🚪

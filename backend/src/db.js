@@ -50,18 +50,6 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
 
-  CREATE TABLE IF NOT EXISTS goals (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    title TEXT NOT NULL,
-    target_value REAL NOT NULL,
-    current_value REAL DEFAULT 0,
-    unit TEXT NOT NULL,
-    deadline DATE,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  );
-
   CREATE TABLE IF NOT EXISTS cheers (
     id TEXT PRIMARY KEY,
     from_user_id TEXT NOT NULL,
@@ -72,20 +60,9 @@ db.exec(`
     FOREIGN KEY (workout_id) REFERENCES workouts(id)
   );
 
-  CREATE TABLE IF NOT EXISTS wins (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    title TEXT NOT NULL,
-    description TEXT,
-    achieved_at DATETIME,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  );
-
   CREATE INDEX IF NOT EXISTS idx_workouts_user ON workouts(user_id);
   CREATE INDEX IF NOT EXISTS idx_workouts_completed ON workouts(completed_at);
   CREATE INDEX IF NOT EXISTS idx_cheers_workout ON cheers(workout_id);
-  CREATE INDEX IF NOT EXISTS idx_goals_user ON goals(user_id);
 `);
 
 export default db;

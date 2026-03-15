@@ -193,25 +193,10 @@ router.get('/feed', authMiddleware, (req, res) => {
       JOIN users u ON w.user_id = u.id
       WHERE w.user_id IN (${placeholders})
       ORDER BY COALESCE(w.completed_at, w.created_at) DESC
-      LIMIT 20
+      LIMIT 30
     `).all(...teamMembers);
 
-    const wins = db.prepare(`
-      SELECT w.*, u.username, u.avatar_url, 'win' as type
-      FROM wins w
-      JOIN users u ON w.user_id = u.id
-      WHERE w.user_id IN (${placeholders})
-      ORDER BY w.achieved_at DESC
-      LIMIT 10
-    `).all(...teamMembers);
-
-    const feed = [...workouts, ...wins].sort((a, b) => {
-      const dateA = new Date(a.achieved_at || a.completed_at || a.created_at);
-      const dateB = new Date(b.achieved_at || b.completed_at || b.created_at);
-      return dateB - dateA;
-    }).slice(0, 30);
-
-    res.json(feed);
+    res.json(workouts);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
