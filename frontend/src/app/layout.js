@@ -7,6 +7,7 @@ export const metadata = {
 };
 
 import ServiceWorkerRegistration from '../components/ServiceWorkerRegistration';
+import PWAInstallPrompt from '../components/PWAInstallPrompt';
 
 export default function RootLayout({ children }) {
   return (
@@ -17,6 +18,7 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <ServiceWorkerRegistration />
+        <PWAInstallPrompt />
         {children}
       </body>
     </html>

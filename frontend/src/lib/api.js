@@ -74,6 +74,8 @@ export const api = {
     get: () => request('/team'),
     create: (name) => request('/team/create', { method: 'POST', body: JSON.stringify({ name }) }),
     join: (inviteCode) => request('/team/join', { method: 'POST', body: JSON.stringify({ invite_code: inviteCode }) }),
+    leave: (teamId) => request(`/team/${teamId}/leave`, { method: 'DELETE' }),
+    disband: (teamId) => request(`/team/${teamId}`, { method: 'DELETE' }),
     feed: () => request('/team/feed'),
   },
   getToken,

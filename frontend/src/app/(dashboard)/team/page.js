@@ -47,6 +47,30 @@ export default function Team() {
     }
   };
 
+  const handleLeave = async (teamId, teamName) => {
+    if (!confirm(`Are you sure you want to leave "${teamName}"?`)) return;
+    try {
+      await api.team.leave(teamId);
+      setTeams(teams.filter(t => t.id !== teamId));
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleDisband = async (teamId, teamName) => {
+    if (!confirm(`Are you sure you want to permanently delete "${teamName}"? This cannot be undone.`)) return;
+    try {
+      await api.team.disband(teamId);
+      setTeams(teams.filter(t => t.id !== teamId));
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const isOnlyMember = (team) => {
+    return team.members && team.members.length === 1 && team.members[0].id === team.user_id;
+  };
+
   if (loading) return <div className="container">Loading...</div>;
 
   return (
@@ -117,12 +141,23 @@ export default function Team() {
           <p>Create a team or join one with an invite code.</p>
         </div>
       ) : (
-        teams.map((team) => (
-          <div key={team.id} style={{ marginBottom: '1.5rem' }}>
-            <div className="card" style={{ marginBottom: '0.75rem', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))' }}>
-              <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>{team.name}</h2>
-              <p style={{ opacity: 0.9 }}>Invite friends: <strong>{team.invite_code}</strong></p>
-            </div>
+        teams.map((team, index) => (
+          <div key={team.id}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div className="card" style={{ marginBottom: '0.75rem', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>{team.name}</h2>
+                  <p style={{ opacity: 0.9 }}>Invite friends: <strong>{team.invite_code}</strong></p>
+                </div>
+                <button
+                  className="btn-ghost"
+                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}
+                  onClick={() => isOnlyMember(team) ? handleDisband(team.id, team.name) : handleLeave(team.id, team.name)}
+                  title={isOnlyMember(team) ? 'Disband team' : 'Leave team'}
+                >
+                  {isOnlyMember(team) ? '💣 Disband' : '🚪 Leave'}
+                </button>
+              </div>
 
             <h3 style={{ marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
               Members
@@ -144,6 +179,10 @@ export default function Team() {
               ))
             )}
           </div>
+          {index < teams.length - 1 && (
+            <div style={{ borderBottom: '2px dashed var(--border)', margin: '1.5rem 0' }} />
+          )}
+        </div>
         ))
       )}
     </div>

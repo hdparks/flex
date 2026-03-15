@@ -108,6 +108,64 @@ router.post('/join', authMiddleware, (req, res) => {
   }
 });
 
+router.delete('/:teamId/leave', authMiddleware, (req, res) => {
+  try {
+    const { teamId } = req.params;
+
+    const membership = db.prepare('SELECT * FROM team_members WHERE team_id = ? AND user_id = ?').get(teamId, req.user.id);
+    if (!membership) {
+      return res.status(404).json({ error: 'You are not a member of this team' });
+    }
+
+    const memberCount = db.prepare('SELECT COUNT(*) as count FROM team_members WHERE team_id = ?').get(teamId);
+    if (memberCount.count === 1) {
+      return res.status(400).json({ error: 'Cannot leave team as the only member. Disband the team instead.' });
+    }
+
+    if (membership.role === 'admin') {
+      const adminCount = db.prepare('SELECT COUNT(*) as count FROM team_members WHERE team_id = ? AND role = ?').get(teamId, 'admin');
+      if (adminCount.count === 1) {
+        return res.status(400).json({ error: 'Cannot leave as the only admin. Assign another admin first or disband the team.' });
+      }
+    }
+
+    db.prepare('DELETE FROM team_members WHERE team_id = ? AND user_id = ?').run(teamId, req.user.id);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.delete('/:teamId', authMiddleware, (req, res) => {
+  try {
+    const { teamId } = req.params;
+
+    const team = db.prepare('SELECT * FROM teams WHERE id = ?').get(teamId);
+    if (!team) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    if (team.created_by !== req.user.id) {
+      return res.status(403).json({ error: 'Only the team creator can disband this team' });
+    }
+
+    const memberCount = db.prepare('SELECT COUNT(*) as count FROM team_members WHERE team_id = ?').get(teamId);
+    if (memberCount.count > 1) {
+      return res.status(400).json({ error: 'Cannot disband team with more than one member. Remove members first.' });
+    }
+
+    db.prepare('DELETE FROM team_members WHERE team_id = ?').run(teamId);
+    db.prepare('DELETE FROM teams WHERE id = ?').run(teamId);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.get('/feed', authMiddleware, (req, res) => {
   try {
     const memberships = db.prepare(`
