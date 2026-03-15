@@ -5,13 +5,13 @@ import { api } from '../../../lib/api';
 export default function Dashboard() {
   const [feed, setFeed] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [team, setTeam] = useState(null);
+  const [teams, setTeams] = useState([]);
 
   useEffect(() => {
     Promise.all([api.team.feed(), api.team.get()])
       .then(([feedData, teamData]) => {
         setFeed(feedData);
-        setTeam(teamData.team);
+        setTeams(teamData.teams || []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -19,7 +19,7 @@ export default function Dashboard() {
 
   if (loading) return <div className="container">Loading...</div>;
 
-  if (!team) {
+  if (teams.length === 0) {
     return (
       <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
         <h2 style={{ marginBottom: '1rem' }}>Join or Create a Team</h2>

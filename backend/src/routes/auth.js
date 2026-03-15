@@ -70,14 +70,14 @@ router.get('/me', authMiddleware, (req, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
   
-  const teamMember = db.prepare(`
-    SELECT tm.*, t.name as team_name 
+  const teams = db.prepare(`
+    SELECT tm.*, t.name as team_name, t.invite_code
     FROM team_members tm 
     JOIN teams t ON tm.team_id = t.id 
     WHERE tm.user_id = ?
-  `).get(req.user.id);
+  `).all(req.user.id);
   
-  res.json({ user, team: teamMember || null });
+  res.json({ user, teams });
 });
 
 export default router;

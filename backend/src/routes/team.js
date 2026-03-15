@@ -12,26 +12,30 @@ function generateInviteCode() {
 
 router.get('/', authMiddleware, (req, res) => {
   try {
-    const membership = db.prepare(`
+    const memberships = db.prepare(`
       SELECT tm.*, t.name, t.invite_code, t.created_at as team_created_at
       FROM team_members tm
       JOIN teams t ON tm.team_id = t.id
       WHERE tm.user_id = ?
-    `).get(req.user.id);
+    `).all(req.user.id);
 
-    if (!membership) {
-      return res.json({ team: null, members: [] });
+    if (memberships.length === 0) {
+      return res.json({ teams: [] });
     }
 
-    const members = db.prepare(`
-      SELECT u.id, u.username, u.avatar_url, u.created_at, tm.role, tm.joined_at
-      FROM team_members tm
-      JOIN users u ON tm.user_id = u.id
-      WHERE tm.team_id = ?
-      ORDER BY tm.joined_at ASC
-    `).all(membership.team_id);
+    const teamsWithMembers = memberships.map(membership => {
+      const members = db.prepare(`
+        SELECT u.id, u.username, u.avatar_url, u.created_at, tm.role, tm.joined_at
+        FROM team_members tm
+        JOIN users u ON tm.user_id = u.id
+        WHERE tm.team_id = ?
+        ORDER BY tm.joined_at ASC
+      `).all(membership.team_id);
 
-    res.json({ team: { ...membership, id: membership.team_id }, members });
+      return { ...membership, id: membership.team_id, members };
+    });
+
+    res.json({ teams: teamsWithMembers });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -44,11 +48,6 @@ router.post('/create', authMiddleware, (req, res) => {
     
     if (!name) {
       return res.status(400).json({ error: 'Team name required' });
-    }
-
-    const existing = db.prepare('SELECT 1 FROM team_members WHERE user_id = ?').get(req.user.id);
-    if (existing) {
-      return res.status(400).json({ error: 'You are already in a team' });
     }
 
     const teamId = uuid();
@@ -80,14 +79,14 @@ router.post('/join', authMiddleware, (req, res) => {
       return res.status(400).json({ error: 'Invite code required' });
     }
 
-    const existing = db.prepare('SELECT 1 FROM team_members WHERE user_id = ?').get(req.user.id);
-    if (existing) {
-      return res.status(400).json({ error: 'You are already in a team' });
-    }
-
     const team = db.prepare('SELECT * FROM teams WHERE invite_code = ?').get(invite_code.toUpperCase());
     if (!team) {
       return res.status(404).json({ error: 'Invalid invite code' });
+    }
+
+    const existing = db.prepare('SELECT 1 FROM team_members WHERE team_id = ? AND user_id = ?').get(team.id, req.user.id);
+    if (existing) {
+      return res.status(400).json({ error: 'You are already a member of this team' });
     }
 
     db.prepare(`
@@ -111,17 +110,22 @@ router.post('/join', authMiddleware, (req, res) => {
 
 router.get('/feed', authMiddleware, (req, res) => {
   try {
-    const membership = db.prepare(`
+    const memberships = db.prepare(`
       SELECT team_id FROM team_members WHERE user_id = ?
-    `).get(req.user.id);
+    `).all(req.user.id);
 
-    if (!membership) {
+    if (memberships.length === 0) {
       return res.json([]);
     }
 
+    const teamIds = memberships.map(m => m.team_id);
     const teamMembers = db.prepare(`
-      SELECT user_id FROM team_members WHERE team_id = ?
-    `).all(membership.team_id).map(m => m.user_id);
+      SELECT DISTINCT user_id FROM team_members WHERE team_id IN (${teamIds.map(() => '?').join(',')})
+    `).all(...teamIds).map(m => m.user_id);
+    
+    if (teamMembers.length === 0) {
+      return res.json([]);
+    }
 
     const placeholders = teamMembers.map(() => '?').join(',');
     

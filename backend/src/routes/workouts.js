@@ -7,10 +7,18 @@ const router = Router();
 
 router.get('/', authMiddleware, (req, res) => {
   try {
+    const memberships = db.prepare(`
+      SELECT team_id FROM team_members WHERE user_id = ?
+    `).all(req.user.id);
+    
+    if (memberships.length === 0) {
+      return res.json([]);
+    }
+
+    const teamIds = memberships.map(m => m.team_id);
     const teamMembers = db.prepare(`
-      SELECT user_id FROM team_members 
-      WHERE team_id = (SELECT team_id FROM team_members WHERE user_id = ?)
-    `).all(req.user.id).map(m => m.user_id);
+      SELECT DISTINCT user_id FROM team_members WHERE team_id IN (${teamIds.map(() => '?').join(',')})
+    `).all(...teamIds).map(m => m.user_id);
     
     if (teamMembers.length === 0) {
       return res.json([]);
