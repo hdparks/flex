@@ -28,9 +28,6 @@ async function request(endpoint, options = {}) {
 
   if (response.status === 401) {
     clearToken();
-    if (typeof window !== 'undefined') {
-      window.location.href = '/';
-    }
   }
 
   const data = await response.json();
@@ -57,6 +54,7 @@ export const api = {
     my: () => request('/workouts?my=true'),
     get: (id) => request(`/workouts/${id}`),
     create: (data) => request('/workouts', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => request(`/workouts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id) => request(`/workouts/${id}`, { method: 'DELETE' }),
   },
   cheers: {
@@ -66,6 +64,7 @@ export const api = {
     get: () => request('/team'),
     create: (name) => request('/team', { method: 'POST', body: JSON.stringify({ name }) }),
     join: (inviteCode) => request('/team', { method: 'POST', body: JSON.stringify({ invite_code: inviteCode }) }),
+    getByInviteCode: (inviteCode) => request(`/team?invite_code=${inviteCode}`),
     leave: (teamId) => request(`/team/${teamId}?action=leave`, { method: 'DELETE' }),
     disband: (teamId) => request(`/team/${teamId}`, { method: 'DELETE' }),
     feed: () => request('/team?feed=true'),

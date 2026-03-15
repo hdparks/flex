@@ -5,6 +5,145 @@ import Link from 'next/link';
 
 const WORKOUT_TYPES = ['run', 'strength', 'cardio', 'hiit', 'flexibility', 'sport', 'other'];
 
+function WorkoutCard({ workout, onUpdate, onDelete }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({
+    type: workout.type,
+    title: workout.title,
+    description: workout.description || '',
+    duration_minutes: workout.duration_minutes || '',
+    completed_at: (workout.completed_at || workout.created_at).split('T')[0]
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onUpdate(workout.id, {
+        ...form,
+        duration_minutes: form.duration_minutes ? parseInt(form.duration_minutes) : null,
+      });
+      setEditing(false);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Delete this workout?')) return;
+    try {
+      await onDelete(workout.id);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  if (editing) {
+    return (
+      <div className="card">
+        <div className="form-group">
+          <label className="label">Type</label>
+          <select
+            className="input"
+            value={form.type}
+            onChange={(e) => setForm({ ...form, type: e.target.value })}
+          >
+            {WORKOUT_TYPES.map((t) => (
+              <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+            ))}
+          </select>
+        </div>
+        <div className="form-group">
+          <label className="label">Title</label>
+          <input
+            type="text"
+            className="input"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+          />
+        </div>
+        <div className="form-group">
+          <label className="label">Description</label>
+          <textarea
+            className="input"
+            rows={2}
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
+        </div>
+        <div className="form-group">
+          <label className="label">Duration (min)</label>
+          <input
+            type="number"
+            className="input"
+            value={form.duration_minutes}
+            onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })}
+          />
+        </div>
+        <div className="form-group">
+          <label className="label">Date</label>
+          <input
+            type="date"
+            className="input"
+            value={form.completed_at}
+            onChange={(e) => setForm({ ...form, completed_at: e.target.value })}
+          />
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setEditing(false)} disabled={saving}>
+            Cancel
+          </button>
+          <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ flex: 1 }}>
+          <span className="workout-type">{workout.type}</span>
+          <h3 style={{ marginTop: '0.5rem' }}>{workout.title}</h3>
+          {workout.description && (
+            <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem', fontSize: '0.875rem' }}>
+              {workout.description}
+            </p>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '0.5rem' }}>
+          <button className="btn-icon" onClick={() => setEditing(true)} title="Edit">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+          </button>
+          <button className="btn-icon btn-danger" onClick={handleDelete} title="Delete">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem' }}>
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+          {new Date(workout.completed_at || workout.created_at).toLocaleDateString()}
+        </div>
+        {workout.duration_minutes && (
+          <span style={{ color: 'var(--primary)', fontWeight: '600', fontSize: '0.875rem' }}>
+            {workout.duration_minutes}m
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Workouts() {
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,15 +155,19 @@ export default function Workouts() {
       .finally(() => setLoading(false));
   }, []);
 
+  const handleUpdate = async (id, data) => {
+    const updated = await api.workouts.update(id, data);
+    setWorkouts(workouts.map(w => w.id === id ? updated : w));
+  };
+
+  const handleDelete = async (id) => {
+    await api.workouts.delete(id);
+    setWorkouts(workouts.filter(w => w.id !== id));
+  };
+
   if (loading) return <div className="container">Loading...</div>;
 
   const totalMinutes = workouts.reduce((sum, w) => sum + (w.duration_minutes || 0), 0);
-  const thisWeek = workouts.filter(w => {
-    const d = new Date(w.completed_at || w.created_at);
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    return d > weekAgo;
-  }).length;
 
   return (
     <div>
@@ -53,25 +196,12 @@ export default function Workouts() {
         <div className="empty">No workouts yet. Start crushing it!</div>
       ) : (
         workouts.map((workout) => (
-          <div key={workout.id} className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <span className="workout-type">{workout.type}</span>
-                <h3 style={{ marginTop: '0.5rem' }}>{workout.title}</h3>
-                {workout.description && (
-                  <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem', fontSize: '0.875rem' }}>
-                    {workout.description}
-                  </p>
-                )}
-              </div>
-              {workout.duration_minutes && (
-                <span style={{ color: 'var(--primary)', fontWeight: '600' }}>{workout.duration_minutes}m</span>
-              )}
-            </div>
-            <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              {new Date(workout.completed_at || workout.created_at).toLocaleDateString()}
-            </div>
-          </div>
+          <WorkoutCard
+            key={workout.id}
+            workout={workout}
+            onUpdate={handleUpdate}
+            onDelete={handleDelete}
+          />
         ))
       )}
     </div>

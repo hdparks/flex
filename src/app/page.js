@@ -28,7 +28,15 @@ export default function Home() {
         : await api.auth.register(form);
       
       api.setToken(res.token);
-      router.push('/dashboard');
+      
+      const joinCode = sessionStorage.getItem('join_code');
+      sessionStorage.removeItem('join_code');
+      
+      if (joinCode) {
+        router.push(`/join?code=${joinCode}`);
+      } else {
+        router.push('/dashboard');
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -64,10 +72,12 @@ export default function Home() {
         <form onSubmit={handleSubmit}>
           {!isLogin && (
             <div className="form-group">
-              <label className="label">Username</label>
+              <label className="label" htmlFor="username">Username</label>
               <input
                 type="text"
+                id="username"
                 name="username"
+                autoComplete="username"
                 className="input"
                 value={form.username}
                 onChange={(e) => setForm({ ...form, username: e.target.value })}
@@ -76,10 +86,12 @@ export default function Home() {
             </div>
           )}
           <div className="form-group">
-            <label className="label">Email</label>
+            <label className="label" htmlFor="email">Email</label>
             <input
               type="email"
+              id="email"
               name="email"
+              autoComplete="email"
               className="input"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -87,10 +99,12 @@ export default function Home() {
             />
           </div>
           <div className="form-group">
-            <label className="label">Password</label>
+            <label className="label" htmlFor="password">Password</label>
             <input
               type="password"
+              id="password"
               name="password"
+              autoComplete="current-password"
               className="input"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}

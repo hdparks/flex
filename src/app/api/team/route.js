@@ -29,14 +29,28 @@ function generateInviteCode() {
 }
 
 export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+  const inviteCode = searchParams.get('invite_code');
+  
+  if (inviteCode) {
+    try {
+      const team = db.prepare('SELECT id, name, invite_code FROM teams WHERE invite_code = ?').get(inviteCode.toUpperCase());
+      if (!team) {
+        return NextResponse.json({ error: 'Invalid invite code' }, { status: 404 });
+      }
+      return NextResponse.json(team);
+    } catch (err) {
+      console.error(err);
+      return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    }
+  }
+
   const authCheck = await authMiddleware(request);
   if (authCheck.error) {
     return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
   }
 
   try {
-    const { searchParams } = new URL(request.url);
-    
     if (searchParams.get('feed') === 'true') {
       const memberships = db.prepare(`
         SELECT team_id FROM team_members WHERE user_id = ?

@@ -27,9 +27,11 @@ export default function DashboardLayout({ children }) {
 
     api.auth.me()
       .then((data) => setUser(data.user))
-      .catch(() => {
-        api.clearToken();
-        router.replace('/');
+      .catch((err) => {
+        if (err.message === 'Unauthorized' || err.message?.includes('token') || err.message?.includes('No token')) {
+          api.clearToken();
+          router.replace('/');
+        }
       });
   }, [router]);
 
@@ -47,7 +49,7 @@ export default function DashboardLayout({ children }) {
           <h1>Hey, {user.username}!</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Let's get moving</p>
         </div>
-        <button onClick={handleLogout} className="btn-ghost" style={{ padding: '0.5rem' }}>
+        <button onClick={handleLogout} className="btn btn-ghost" style={{ padding: '0.5rem' }}>
           🚪
         </button>
       </header>

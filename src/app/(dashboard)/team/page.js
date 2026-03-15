@@ -8,6 +8,7 @@ export default function Team() {
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
   const [form, setForm] = useState({ name: '', invite_code: '' });
+  const [openMenu, setOpenMenu] = useState(null);
 
   useEffect(() => {
     api.team.get()
@@ -17,6 +18,16 @@ export default function Team() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (openMenu && !e.target.closest('[data-dropdown]')) {
+        setOpenMenu(null);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [openMenu]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -69,6 +80,12 @@ export default function Team() {
 
   const isOnlyMember = (team) => {
     return team.members && team.members.length === 1 && team.members[0].id === team.user_id;
+  };
+
+  const copyInviteLink = (inviteCode) => {
+    const url = `${window.location.origin}/join?code=${inviteCode}`;
+    navigator.clipboard.writeText(url);
+    alert('Invite link copied to clipboard!');
   };
 
   if (loading) return <div className="container">Loading...</div>;
@@ -148,15 +165,35 @@ export default function Team() {
                 <div>
                   <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>{team.name}</h2>
                   <p style={{ opacity: 0.9 }}>Invite friends: <strong>{team.invite_code}</strong></p>
+                  <button
+                    className="btn btn-ghost"
+                    style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', marginTop: '0.25rem', color: 'rgba(255,255,255,0.8)' }}
+                    onClick={() => copyInviteLink(team.invite_code)}
+                  >
+                    Copy Link
+                  </button>
                 </div>
-                <button
-                  className="btn-ghost"
-                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}
-                  onClick={() => isOnlyMember(team) ? handleDisband(team.id, team.name) : handleLeave(team.id, team.name)}
-                  title={isOnlyMember(team) ? 'Disband team' : 'Leave team'}
-                >
-                  {isOnlyMember(team) ? '💣 Disband' : '🚪 Leave'}
-                </button>
+                <div style={{ position: 'relative' }} data-dropdown>
+                  <button
+                    className="btn btn-ghost"
+                    style={{ padding: '0.25rem 0.5rem', color: 'rgba(255,255,255,0.8)', borderRadius: '50%' }}
+                    onClick={() => setOpenMenu(openMenu === team.id ? null : team.id)}
+                    title="Team actions"
+                  >
+                    ⋮
+                  </button>
+                  {openMenu === team.id && (
+                    <div className="card" style={{ position: 'absolute', right: 0, top: '100%', marginTop: '0.25rem', minWidth: '140px', padding: '0', boxShadow: '0 4px 16px rgba(0,0,0,0.2)', zIndex: 10 }}>
+                      <button
+                        className="btn btn-ghost"
+                        style={{ width: '100%', textAlign: 'left', padding: '0.75rem', fontSize: '0.875rem', justifyContent: 'flex-start', borderRadius: 0 }}
+                        onClick={() => { isOnlyMember(team) ? handleDisband(team.id, team.name) : handleLeave(team.id, team.name); setOpenMenu(null); }}
+                      >
+                        {isOnlyMember(team) ? '💣 Disband' : '🚪 Leave'}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
             <h3 style={{ marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '1px' }}>

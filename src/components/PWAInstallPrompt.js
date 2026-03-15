@@ -56,6 +56,7 @@ export default function PWAInstallPrompt() {
       </span>
       <div style={{ display: 'flex', gap: '8px' }}>
         <button
+          className="btn"
           onClick={handleDismiss}
           style={{
             background: 'transparent',
@@ -70,6 +71,7 @@ export default function PWAInstallPrompt() {
           Not now
         </button>
         <button
+          className="btn"
           onClick={handleInstall}
           style={{
             background: '#ff6b35',

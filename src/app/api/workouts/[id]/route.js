@@ -82,3 +82,44 @@ export async function DELETE(request, { params }) {
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
+
+export async function PUT(request, { params }) {
+  const authCheck = await authMiddleware(request);
+  if (authCheck.error) {
+    return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+  }
+
+  try {
+    const body = await request.json();
+    const workout = db.prepare('SELECT * FROM workouts WHERE id = ?').get(params.id);
+    
+    if (!workout) {
+      return NextResponse.json({ error: 'Workout not found' }, { status: 404 });
+    }
+
+    if (workout.user_id !== authCheck.user.id) {
+      return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+    }
+
+    const { type, title, description, duration_minutes, completed_at } = body;
+
+    db.prepare(`
+      UPDATE workouts 
+      SET type = ?, title = ?, description = ?, duration_minutes = ?, completed_at = ?
+      WHERE id = ?
+    `).run(
+      type ?? workout.type,
+      title ?? workout.title,
+      description ?? workout.description,
+      duration_minutes !== undefined ? duration_minutes : workout.duration_minutes,
+      completed_at ?? workout.completed_at,
+      params.id
+    );
+
+    const updated = db.prepare('SELECT * FROM workouts WHERE id = ?').get(params.id);
+    return NextResponse.json(updated);
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
