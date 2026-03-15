@@ -67,6 +67,7 @@ export default function Home() {
               <label className="label">Username</label>
               <input
                 type="text"
+                name="username"
                 className="input"
                 value={form.username}
                 onChange={(e) => setForm({ ...form, username: e.target.value })}
@@ -78,6 +79,7 @@ export default function Home() {
             <label className="label">Email</label>
             <input
               type="email"
+              name="email"
               className="input"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -88,6 +90,7 @@ export default function Home() {
             <label className="label">Password</label>
             <input
               type="password"
+              name="password"
               className="input"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}

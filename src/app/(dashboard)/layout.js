@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { api } from '../../lib/api';
 
@@ -13,8 +13,12 @@ export default function DashboardLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState(null);
+  const hasValidated = useRef(false);
 
   useEffect(() => {
+    if (hasValidated.current) return;
+    hasValidated.current = true;
+
     const token = api.getToken();
     if (!token) {
       router.replace('/');
