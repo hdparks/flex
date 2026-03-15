@@ -58,6 +58,10 @@ export const api = {
     login: (credentials) => request('/auth/login', { method: 'POST', body: JSON.stringify(credentials) }),
     me: () => request('/auth/me'),
   },
+  admin: {
+    createDummyUser: (userData) => request('/admin/dummy-user', { method: 'POST', body: JSON.stringify(userData) }),
+    impersonate: (userId) => request(`/admin/impersonate/${userId}`, { method: 'POST' }),
+  },
   workouts: {
     list: () => request('/workouts'),
     my: () => request('/workouts/my'),
@@ -75,6 +79,11 @@ export const api = {
     leave: (teamId) => request(`/team/${teamId}/leave`, { method: 'DELETE' }),
     disband: (teamId) => request(`/team/${teamId}`, { method: 'DELETE' }),
     feed: () => request('/team/feed'),
+  },
+  push: {
+    getPublicKey: () => request('/push/public-key'),
+    subscribe: (subscription) => request('/push/subscribe', { method: 'POST', body: JSON.stringify({ subscription }) }),
+    unsubscribe: (endpoint) => request('/push/unsubscribe', { method: 'POST', body: JSON.stringify({ endpoint }) }),
   },
   getToken,
   setToken,

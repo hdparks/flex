@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
 import db from '../db.js';
 import { authMiddleware } from '../auth.js';
+import { notifyTeam } from './push.js';
 
 const router = Router();
 
@@ -87,7 +88,7 @@ router.get('/:id', authMiddleware, (req, res) => {
   }
 });
 
-router.post('/', authMiddleware, (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   try {
     const { type, title, description, duration_minutes, completed_at } = req.body;
     
@@ -104,6 +105,12 @@ router.post('/', authMiddleware, (req, res) => {
     `).run(id, req.user.id, type, title, description || null, duration_minutes || null, completedAt);
 
     const workout = db.prepare('SELECT * FROM workouts WHERE id = ?').get(id);
+
+    const teams = db.prepare('SELECT team_id FROM team_members WHERE user_id = ?').all(req.user.id);
+    for (const team of teams) {
+      notifyTeam(team.team_id, req.user.id, req.user.username, title).catch(console.error);
+    }
+
     res.status(201).json(workout);
   } catch (err) {
     console.error(err);
