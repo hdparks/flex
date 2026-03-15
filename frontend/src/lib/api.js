@@ -1,4 +1,4 @@
-const API_URL = process.env.FLEX_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_URL = process.env.FLEX_PUBLIC_API_URL || 'http://localhost:4001/api';
 
 function getToken() {
   if (typeof window === 'undefined') return null;
