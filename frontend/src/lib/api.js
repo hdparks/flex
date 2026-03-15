@@ -1,4 +1,14 @@
-const API_URL = process.env.FLEX_PUBLIC_API_URL || 'http://localhost:4001/api';
+const getApiUrl = () => {
+  if (typeof window === 'undefined') return process.env.FLEX_PUBLIC_API_URL || 'http://localhost:4001/api';
+
+  // This hack lets me test stuff out on the same machine running the front+backend. It gets confused if I tell it its own local network address instead of just "localhost"
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:4001/api';
+  }
+  return process.env.FLEX_PUBLIC_API_URL || 'http://localhost:4001/api';
+};
+
+const API_URL = getApiUrl();
 
 function getToken() {
   if (typeof window === 'undefined') return null;
