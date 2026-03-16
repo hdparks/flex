@@ -36,19 +36,19 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Workout ID required' }, { status: 400 });
     }
 
-    const workout = db.prepare('SELECT * FROM workouts WHERE id = ?').get(workout_id);
+    const workout = await db.prepare('SELECT * FROM workouts WHERE id = ?').get(workout_id);
     if (!workout) {
       return NextResponse.json({ error: 'Workout not found' }, { status: 404 });
     }
 
     const id = uuid();
     
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO cheers (id, from_user_id, workout_id, message)
       VALUES (?, ?, ?, ?)
     `).run(id, authCheck.user.id, workout_id, message || null);
 
-    const cheer = db.prepare(`
+    const cheer = await db.prepare(`
       SELECT c.*, u.username, u.avatar_url
       FROM cheers c
       JOIN users u ON c.from_user_id = u.id
@@ -76,7 +76,7 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: 'Workout ID required' }, { status: 400 });
     }
 
-    const cheers = db.prepare(`
+    const cheers = await db.prepare(`
       SELECT c.*, u.username, u.avatar_url
       FROM cheers c
       JOIN users u ON c.from_user_id = u.id

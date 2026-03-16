@@ -22,12 +22,12 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
   }
 
-  const user = db.prepare('SELECT id, username, email, avatar_url, created_at FROM users WHERE id = ?').get(decoded.id);
+  const user = await db.prepare('SELECT id, username, email, avatar_url, created_at FROM users WHERE id = ?').get(decoded.id);
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
   
-  const teams = db.prepare(`
+  const teams = await db.prepare(`
     SELECT tm.*, t.name as team_name, t.invite_code
     FROM team_members tm 
     JOIN teams t ON tm.team_id = t.id 

@@ -2,11 +2,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '../../../../lib/api';
+import { useToast } from '../../../../components/ToastProvider';
 
 const WORKOUT_TYPES = ['run', 'strength', 'cardio', 'hiit', 'flexibility', 'sport', 'other'];
 
 export default function NewWorkout() {
   const router = useRouter();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     type: 'run',
@@ -27,7 +29,7 @@ export default function NewWorkout() {
       });
       router.push('/workouts');
     } catch (err) {
-      alert(err.message);
+      toast(err.message, 'error');
     } finally {
       setLoading(false);
     }

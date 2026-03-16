@@ -35,7 +35,7 @@ export async function GET(request) {
     const userId = authCheck.user.id;
     
     if (searchParams.get('my') === 'true') {
-      const workouts = db.prepare(`
+      const workouts = await db.prepare(`
         SELECT w.*, 
           (SELECT COUNT(*) FROM cheers WHERE workout_id = w.id) as cheer_count
         FROM workouts w
@@ -46,7 +46,7 @@ export async function GET(request) {
       return NextResponse.json(workouts);
     }
 
-    const memberships = db.prepare(`
+    const memberships = await db.prepare(`
       SELECT team_id FROM team_members WHERE user_id = ?
     `).all(userId);
     
@@ -55,7 +55,7 @@ export async function GET(request) {
     }
 
     const teamIds = memberships.map(m => m.team_id);
-    const teamMembers = db.prepare(`
+    const teamMembers = await db.prepare(`
       SELECT DISTINCT user_id FROM team_members WHERE team_id IN (${teamIds.map(() => '?').join(',')})
     `).all(...teamIds).map(m => m.user_id);
     
@@ -64,7 +64,7 @@ export async function GET(request) {
     }
 
     const placeholders = teamMembers.map(() => '?').join(',');
-    const workouts = db.prepare(`
+    const workouts = await db.prepare(`
       SELECT w.*, u.username, u.avatar_url,
         (SELECT COUNT(*) FROM cheers WHERE workout_id = w.id) as cheer_count
       FROM workouts w
@@ -96,14 +96,14 @@ export async function POST(request) {
     const id = uuid();
     const completedAt = completed_at || new Date().toISOString();
     
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO workouts (id, user_id, type, title, description, duration_minutes, completed_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(id, authCheck.user.id, type, title, description || null, duration_minutes || null, completedAt);
 
-    const workout = db.prepare('SELECT * FROM workouts WHERE id = ?').get(id);
+    const workout = await db.prepare('SELECT * FROM workouts WHERE id = ?').get(id);
 
-    const teams = db.prepare('SELECT team_id FROM team_members WHERE user_id = ?').all(authCheck.user.id);
+    const teams = await db.prepare('SELECT team_id FROM team_members WHERE user_id = ?').all(authCheck.user.id);
     for (const team of teams) {
       notifyTeam(team.team_id, authCheck.user.id, authCheck.user.username, title).catch(console.error);
     }

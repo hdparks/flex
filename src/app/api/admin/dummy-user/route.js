@@ -22,7 +22,7 @@ async function adminMiddleware(request) {
     return { error: 'Invalid token', status: 401 };
   }
 
-  const user = db.prepare('SELECT is_admin FROM users WHERE id = ?').get(decoded.id);
+  const user = await db.prepare('SELECT is_admin FROM users WHERE id = ?').get(decoded.id);
   if (!user || !user.is_admin) {
     return { error: 'Admin access required', status: 403 };
   }
@@ -43,7 +43,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Username, email, and password required' }, { status: 400 });
     }
 
-    const existing = db.prepare('SELECT id FROM users WHERE email = ? OR username = ?').get(email, username);
+    const existing = await db.prepare('SELECT id FROM users WHERE email = ? OR username = ?').get(email, username);
     if (existing) {
       return NextResponse.json({ error: 'Username or email already exists' }, { status: 400 });
     }
@@ -51,7 +51,7 @@ export async function POST(request) {
     const password_hash = await bcrypt.hash(password, 10);
     const id = uuid();
     
-    db.prepare('INSERT INTO users (id, username, email, password_hash) VALUES (?, ?, ?, ?)').run(id, username, email, password_hash);
+    await db.prepare('INSERT INTO users (id, username, email, password_hash) VALUES (?, ?, ?, ?)').run(id, username, email, password_hash);
     
     const user = { id, username, email };
     

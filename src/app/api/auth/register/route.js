@@ -12,7 +12,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Username, email, and password required' }, { status: 400 });
     }
 
-    const existing = db.prepare('SELECT id FROM users WHERE email = ? OR username = ?').get(email, username);
+    const existing = await db.prepare('SELECT id FROM users WHERE email = ? OR username = ?').get(email, username);
     if (existing) {
       return NextResponse.json({ error: 'Username or email already exists' }, { status: 400 });
     }
@@ -20,7 +20,7 @@ export async function POST(request) {
     const password_hash = await bcrypt.hash(password, 10);
     const id = uuid();
     
-    db.prepare('INSERT INTO users (id, username, email, password_hash) VALUES (?, ?, ?, ?)').run(id, username, email, password_hash);
+    await db.prepare('INSERT INTO users (id, username, email, password_hash) VALUES (?, ?, ?, ?)').run(id, username, email, password_hash);
     
     const user = { id, username, email };
     const token = generateToken(user);

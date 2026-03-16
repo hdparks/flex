@@ -34,7 +34,7 @@ export async function GET(request) {
   
   if (inviteCode) {
     try {
-      const team = db.prepare('SELECT id, name, invite_code FROM teams WHERE invite_code = ?').get(inviteCode.toUpperCase());
+      const team = await db.prepare('SELECT id, name, invite_code FROM teams WHERE invite_code = ?').get(inviteCode.toUpperCase());
       if (!team) {
         return NextResponse.json({ error: 'Invalid invite code' }, { status: 404 });
       }
@@ -52,7 +52,7 @@ export async function GET(request) {
 
   try {
     if (searchParams.get('feed') === 'true') {
-      const memberships = db.prepare(`
+      const memberships = await db.prepare(`
         SELECT team_id FROM team_members WHERE user_id = ?
       `).all(authCheck.user.id);
 
@@ -61,7 +61,7 @@ export async function GET(request) {
       }
 
       const teamIds = memberships.map(m => m.team_id);
-      const teamMembers = db.prepare(`
+      const teamMembers = await db.prepare(`
         SELECT DISTINCT user_id FROM team_members WHERE team_id IN (${teamIds.map(() => '?').join(',')})
       `).all(...teamIds).map(m => m.user_id);
       
@@ -71,7 +71,7 @@ export async function GET(request) {
 
       const placeholders = teamMembers.map(() => '?').join(',');
       
-      const workouts = db.prepare(`
+      const workouts = await db.prepare(`
         SELECT w.*, u.username, u.avatar_url, 'workout' as type
         FROM workouts w
         JOIN users u ON w.user_id = u.id
@@ -83,7 +83,7 @@ export async function GET(request) {
       return NextResponse.json(workouts);
     }
 
-    const memberships = db.prepare(`
+    const memberships = await db.prepare(`
       SELECT tm.*, t.name, t.invite_code, t.created_at as team_created_at
       FROM team_members tm
       JOIN teams t ON tm.team_id = t.id
@@ -94,8 +94,8 @@ export async function GET(request) {
       return NextResponse.json({ teams: [] });
     }
 
-    const teamsWithMembers = memberships.map(membership => {
-      const members = db.prepare(`
+    const teamsWithMembers = await Promise.all(memberships.map(async (membership) => {
+      const members = await db.prepare(`
         SELECT u.id, u.username, u.avatar_url, u.created_at, tm.role, tm.joined_at
         FROM team_members tm
         JOIN users u ON tm.user_id = u.id
@@ -104,7 +104,7 @@ export async function GET(request) {
       `).all(membership.team_id);
 
       return { ...membership, id: membership.team_id, members };
-    });
+    }));
 
     return NextResponse.json({ teams: teamsWithMembers });
   } catch (err) {
@@ -126,37 +126,37 @@ export async function POST(request) {
       const teamId = uuid();
       const inviteCode = generateInviteCode();
       
-      db.prepare(`
+      await db.prepare(`
         INSERT INTO teams (id, name, invite_code, created_by)
         VALUES (?, ?, ?, ?)
       `).run(teamId, name, inviteCode, authCheck.user.id);
 
-      db.prepare(`
+      await db.prepare(`
         INSERT INTO team_members (team_id, user_id, role)
         VALUES (?, ?, 'admin')
       `).run(teamId, authCheck.user.id);
 
-      const team = db.prepare('SELECT * FROM teams WHERE id = ?').get(teamId);
+      const team = await db.prepare('SELECT * FROM teams WHERE id = ?').get(teamId);
       return NextResponse.json({ ...team, members: [{ user_id: authCheck.user.id, role: 'admin' }] }, { status: 201 });
     }
     
     if (invite_code) {
-      const team = db.prepare('SELECT * FROM teams WHERE invite_code = ?').get(invite_code.toUpperCase());
+      const team = await db.prepare('SELECT * FROM teams WHERE invite_code = ?').get(invite_code.toUpperCase());
       if (!team) {
         return NextResponse.json({ error: 'Invalid invite code' }, { status: 404 });
       }
 
-      const existing = db.prepare('SELECT 1 FROM team_members WHERE team_id = ? AND user_id = ?').get(team.id, authCheck.user.id);
+      const existing = await db.prepare('SELECT 1 FROM team_members WHERE team_id = ? AND user_id = ?').get(team.id, authCheck.user.id);
       if (existing) {
         return NextResponse.json({ error: 'You are already a member of this team' }, { status: 400 });
       }
 
-      db.prepare(`
+      await db.prepare(`
         INSERT INTO team_members (team_id, user_id, role)
         VALUES (?, ?, 'member')
       `).run(team.id, authCheck.user.id);
 
-      const members = db.prepare(`
+      const members = await db.prepare(`
         SELECT u.id, u.username, u.avatar_url, tm.role, tm.joined_at
         FROM team_members tm
         JOIN users u ON tm.user_id = u.id
@@ -185,28 +185,28 @@ export async function DELETE(request, { params }) {
     const { teamId } = params;
 
     if (action === 'leave') {
-      const membership = db.prepare('SELECT * FROM team_members WHERE team_id = ? AND user_id = ?').get(teamId, authCheck.user.id);
+      const membership = await db.prepare('SELECT * FROM team_members WHERE team_id = ? AND user_id = ?').get(teamId, authCheck.user.id);
       if (!membership) {
         return NextResponse.json({ error: 'You are not a member of this team' }, { status: 404 });
       }
 
-      const memberCount = db.prepare('SELECT COUNT(*) as count FROM team_members WHERE team_id = ?').get(teamId);
+      const memberCount = await db.prepare('SELECT COUNT(*) as count FROM team_members WHERE team_id = ?').get(teamId);
       if (memberCount.count === 1) {
         return NextResponse.json({ error: 'Cannot leave team as the only member. Disband the team instead.' }, { status: 400 });
       }
 
       if (membership.role === 'admin') {
-        const adminCount = db.prepare('SELECT COUNT(*) as count FROM team_members WHERE team_id = ? AND role = ?').get(teamId, 'admin');
+        const adminCount = await db.prepare('SELECT COUNT(*) as count FROM team_members WHERE team_id = ? AND role = ?').get(teamId, 'admin');
         if (adminCount.count === 1) {
           return NextResponse.json({ error: 'Cannot leave as the only admin. Assign another admin first or disband the team.' }, { status: 400 });
         }
       }
 
-      db.prepare('DELETE FROM team_members WHERE team_id = ? AND user_id = ?').run(teamId, authCheck.user.id);
+      await db.prepare('DELETE FROM team_members WHERE team_id = ? AND user_id = ?').run(teamId, authCheck.user.id);
       return NextResponse.json({ success: true });
     }
 
-    const team = db.prepare('SELECT * FROM teams WHERE id = ?').get(teamId);
+    const team = await db.prepare('SELECT * FROM teams WHERE id = ?').get(teamId);
     if (!team) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 });
     }
@@ -215,13 +215,13 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Only the team creator can disband this team' }, { status: 403 });
     }
 
-    const memberCount = db.prepare('SELECT COUNT(*) as count FROM team_members WHERE team_id = ?').get(teamId);
+    const memberCount = await db.prepare('SELECT COUNT(*) as count FROM team_members WHERE team_id = ?').get(teamId);
     if (memberCount.count > 1) {
       return NextResponse.json({ error: 'Cannot disband team with more than one member. Remove members first.' }, { status: 400 });
     }
 
-    db.prepare('DELETE FROM team_members WHERE team_id = ?').run(teamId);
-    db.prepare('DELETE FROM teams WHERE id = ?').run(teamId);
+    await db.prepare('DELETE FROM team_members WHERE team_id = ?').run(teamId);
+    await db.prepare('DELETE FROM teams WHERE id = ?').run(teamId);
 
     return NextResponse.json({ success: true });
   } catch (err) {

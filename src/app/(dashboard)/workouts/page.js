@@ -1,11 +1,12 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { api } from '../../../lib/api';
+import { useToast } from '../../../components/ToastProvider';
 import Link from 'next/link';
 
 const WORKOUT_TYPES = ['run', 'strength', 'cardio', 'hiit', 'flexibility', 'sport', 'other'];
 
-function WorkoutCard({ workout, onUpdate, onDelete }) {
+function WorkoutCard({ workout, onUpdate, onDelete, toast }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     type: workout.type,
@@ -25,7 +26,7 @@ function WorkoutCard({ workout, onUpdate, onDelete }) {
       });
       setEditing(false);
     } catch (err) {
-      alert(err.message);
+      toast(err.message, 'error');
     } finally {
       setSaving(false);
     }
@@ -36,7 +37,7 @@ function WorkoutCard({ workout, onUpdate, onDelete }) {
     try {
       await onDelete(workout.id);
     } catch (err) {
-      alert(err.message);
+      toast(err.message, 'error');
     }
   };
 
@@ -145,6 +146,7 @@ function WorkoutCard({ workout, onUpdate, onDelete }) {
 }
 
 export default function Workouts() {
+  const { toast } = useToast();
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -201,6 +203,7 @@ export default function Workouts() {
             workout={workout}
             onUpdate={handleUpdate}
             onDelete={handleDelete}
+            toast={toast}
           />
         ))
       )}

@@ -29,7 +29,7 @@ export async function GET(request, { params }) {
   }
 
   try {
-    const workout = db.prepare(`
+    const workout = await db.prepare(`
       SELECT w.*, u.username, u.avatar_url,
         (SELECT COUNT(*) FROM cheers WHERE workout_id = w.id) as cheer_count
       FROM workouts w
@@ -41,7 +41,7 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: 'Workout not found' }, { status: 404 });
     }
 
-    const cheers = db.prepare(`
+    const cheers = await db.prepare(`
       SELECT c.*, u.username, u.avatar_url
       FROM cheers c
       JOIN users u ON c.from_user_id = u.id
@@ -63,7 +63,7 @@ export async function DELETE(request, { params }) {
   }
 
   try {
-    const workout = db.prepare('SELECT * FROM workouts WHERE id = ?').get(params.id);
+    const workout = await db.prepare('SELECT * FROM workouts WHERE id = ?').get(params.id);
     
     if (!workout) {
       return NextResponse.json({ error: 'Workout not found' }, { status: 404 });
@@ -73,8 +73,8 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 
-    db.prepare('DELETE FROM cheers WHERE workout_id = ?').run(params.id);
-    db.prepare('DELETE FROM workouts WHERE id = ?').run(params.id);
+    await db.prepare('DELETE FROM cheers WHERE workout_id = ?').run(params.id);
+    await db.prepare('DELETE FROM workouts WHERE id = ?').run(params.id);
     
     return NextResponse.json({ success: true });
   } catch (err) {
@@ -91,7 +91,7 @@ export async function PUT(request, { params }) {
 
   try {
     const body = await request.json();
-    const workout = db.prepare('SELECT * FROM workouts WHERE id = ?').get(params.id);
+    const workout = await db.prepare('SELECT * FROM workouts WHERE id = ?').get(params.id);
     
     if (!workout) {
       return NextResponse.json({ error: 'Workout not found' }, { status: 404 });
@@ -103,7 +103,7 @@ export async function PUT(request, { params }) {
 
     const { type, title, description, duration_minutes, completed_at } = body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE workouts 
       SET type = ?, title = ?, description = ?, duration_minutes = ?, completed_at = ?
       WHERE id = ?
@@ -116,7 +116,7 @@ export async function PUT(request, { params }) {
       params.id
     );
 
-    const updated = db.prepare('SELECT * FROM workouts WHERE id = ?').get(params.id);
+    const updated = await db.prepare('SELECT * FROM workouts WHERE id = ?').get(params.id);
     return NextResponse.json(updated);
   } catch (err) {
     console.error(err);

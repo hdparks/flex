@@ -1,8 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { api } from '../../../lib/api';
+import { useToast } from '../../../components/ToastProvider';
 
 export default function Team() {
+  const { toast } = useToast();
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -37,7 +39,7 @@ export default function Team() {
       setShowCreate(false);
       setForm({ ...form, name: '' });
     } catch (err) {
-      alert(err.message);
+      toast(err.message, 'error');
     }
   };
 
@@ -54,7 +56,7 @@ export default function Team() {
       setShowJoin(false);
       setForm({ ...form, invite_code: '' });
     } catch (err) {
-      alert(err.message);
+      toast(err.message, 'error');
     }
   };
 
@@ -64,7 +66,7 @@ export default function Team() {
       await api.team.leave(teamId);
       setTeams(teams.filter(t => t.id !== teamId));
     } catch (err) {
-      alert(err.message);
+      toast(err.message, 'error');
     }
   };
 
@@ -74,7 +76,7 @@ export default function Team() {
       await api.team.disband(teamId);
       setTeams(teams.filter(t => t.id !== teamId));
     } catch (err) {
-      alert(err.message);
+      toast(err.message, 'error');
     }
   };
 
@@ -84,8 +86,13 @@ export default function Team() {
 
   const copyInviteLink = (inviteCode) => {
     const url = `${window.location.origin}/join?code=${inviteCode}`;
-    navigator.clipboard.writeText(url);
-    alert('Invite link copied to clipboard!');
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url)
+        .then(() => toast('Invite link copied to clipboard!', 'success'))
+        .catch(() => toast(`Copy this link: ${url}`, 'info'));
+    } else {
+      toast(`Copy this link: ${url}`, 'info');
+    }
   };
 
   if (loading) return <div className="container">Loading...</div>;

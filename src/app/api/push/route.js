@@ -41,7 +41,7 @@ export async function POST(request) {
       const id = uuid();
       const keys = JSON.stringify(subscription.keys);
       
-      db.prepare(`
+      await db.prepare(`
         INSERT INTO push_subscriptions (id, user_id, endpoint, keys)
         VALUES (?, ?, ?, ?)
       `).run(id, authCheck.user.id, subscription.endpoint, keys);
@@ -50,7 +50,7 @@ export async function POST(request) {
     }
     
     if (endpoint) {
-      db.prepare('DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint = ?')
+      await db.prepare('DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint = ?')
         .run(authCheck.user.id, endpoint);
 
       return NextResponse.json({ success: true });

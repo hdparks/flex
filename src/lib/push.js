@@ -13,20 +13,8 @@ if (publicKey && privateKey) {
   );
 }
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS push_subscriptions (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    endpoint TEXT NOT NULL,
-    keys TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  );
-  CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id);
-`);
-
 export async function sendNotification(userId, title, body, url) {
-  const subscriptions = db.prepare('SELECT * FROM push_subscriptions WHERE user_id = ?').all(userId);
+  const subscriptions = await db.prepare('SELECT * FROM push_subscriptions WHERE user_id = ?').all(userId);
   
   const notification = JSON.stringify({
     title,
@@ -46,14 +34,14 @@ export async function sendNotification(userId, title, body, url) {
     } catch (err) {
       console.error('Push notification error:', err.message);
       if (err.statusCode === 410 || err.statusCode === 404) {
-        db.prepare('DELETE FROM push_subscriptions WHERE id = ?').run(sub.id);
+        await db.prepare('DELETE FROM push_subscriptions WHERE id = ?').run(sub.id);
       }
     }
   }
 }
 
 export async function notifyTeam(teamId, authorId, authorName, workoutTitle) {
-  const members = db.prepare(`
+  const members = await db.prepare(`
     SELECT user_id FROM team_members WHERE team_id = ? AND user_id != ?
   `).all(teamId, authorId);
 

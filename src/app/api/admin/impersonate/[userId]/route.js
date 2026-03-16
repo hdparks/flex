@@ -20,7 +20,7 @@ async function adminMiddleware(request) {
     return { error: 'Invalid token', status: 401 };
   }
 
-  const user = db.prepare('SELECT is_admin FROM users WHERE id = ?').get(decoded.id);
+  const user = await db.prepare('SELECT is_admin FROM users WHERE id = ?').get(decoded.id);
   if (!user || !user.is_admin) {
     return { error: 'Admin access required', status: 403 };
   }
@@ -37,7 +37,7 @@ export async function POST(request, { params }) {
   try {
     const { userId } = params;
     
-    const targetUser = db.prepare('SELECT id, username, email, avatar_url FROM users WHERE id = ?').get(userId);
+    const targetUser = await db.prepare('SELECT id, username, email, avatar_url FROM users WHERE id = ?').get(userId);
     if (!targetUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
