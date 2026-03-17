@@ -29,7 +29,7 @@ export async function POST(request) {
   }
 
   try {
-    const { workout_id, message } = await request.json();
+    const { workout_id, message, image } = await request.json();
     
     if (!workout_id) {
       return NextResponse.json({ error: 'Workout ID required' }, { status: 400 });
@@ -48,9 +48,9 @@ export async function POST(request) {
     const id = uuid();
     
     await db.prepare(`
-      INSERT INTO cheers (id, from_user_id, workout_id, message)
-      VALUES (?, ?, ?, ?)
-    `).run(id, session.user.id, workout_id, message || null);
+      INSERT INTO cheers (id, from_user_id, workout_id, message, image)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(id, session.user.id, workout_id, message || null, image || null);
 
     const cheer = await db.prepare(`
       SELECT c.*, u.username, u.avatar_url

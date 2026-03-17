@@ -149,16 +149,28 @@ export default function Workouts() {
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [filter, setFilter] = useState('my');
 
-  useEffect(() => {
-    api.workouts.my()
-      .then(setWorkouts)
+  const loadWorkouts = (filterType) => {
+    setLoading(true);
+    setError(null);
+    const fetchFn = filterType === 'my' ? api.workouts.my() : api.workouts.list();
+    fetchFn
+      .then((data) => {
+        setWorkouts(data);
+        setLoading(false);
+      })
       .catch((err) => {
         setError(err);
         setWorkouts([]);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+        setLoading(false);
+      });
+  };
+
+  const handleFilterChange = (newFilter) => {
+    setFilter(newFilter);
+    loadWorkouts(newFilter);
+  };
 
   const handleUpdate = async (id, data) => {
     const updated = await api.workouts.update(id, data);
@@ -184,6 +196,23 @@ export default function Workouts() {
 
   return (
     <div>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+        <button
+          className={`btn ${filter === 'my' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ flex: 1 }}
+          onClick={() => handleFilterChange('my')}
+        >
+          My Workouts
+        </button>
+        <button
+          className={`btn ${filter === 'team' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ flex: 1 }}
+          onClick={() => handleFilterChange('team')}
+        >
+          Team
+        </button>
+      </div>
+
       <div className="grid" style={{ marginBottom: '1.5rem' }}>
         <div className="card stat">
           <div className="stat-value">{workouts.length}</div>
@@ -202,7 +231,7 @@ export default function Workouts() {
       </div>
 
       <h2 style={{ marginBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-        Recent Workouts
+        {filter === 'my' ? 'My' : 'Team'} Recent Workouts
       </h2>
 
       {workouts.length === 0 ? (

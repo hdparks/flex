@@ -53,7 +53,8 @@ export async function GET(request) {
       const placeholders = teamMembers.map(() => '?').join(',');
       
       const workouts = await db.prepare(`
-        SELECT w.*, u.username, u.avatar_url, 'workout' as type
+        SELECT w.*, u.username, u.avatar_url, 'workout' as type,
+          (SELECT COUNT(*) FROM cheers c WHERE c.workout_id = w.id) as cheer_count
         FROM workouts w
         JOIN users u ON w.user_id = u.id
         WHERE w.user_id IN (${placeholders})
@@ -61,7 +62,31 @@ export async function GET(request) {
         LIMIT 30
       `).all(...teamMembers);
 
-      return NextResponse.json(workouts);
+      const workoutIds = workouts.map(w => w.id);
+      let cheersMap = {};
+      if (workoutIds.length > 0) {
+        const cheersPlaceholders = workoutIds.map(() => '?').join(',');
+        const cheers = await db.prepare(`
+          SELECT c.*, u.username, u.avatar_url
+          FROM cheers c
+          JOIN users u ON c.from_user_id = u.id
+          WHERE c.workout_id IN (${cheersPlaceholders})
+          ORDER BY c.created_at DESC
+        `).all(...workoutIds);
+        
+        cheersMap = cheers.reduce((acc, c) => {
+          if (!acc[c.workout_id]) acc[c.workout_id] = [];
+          acc[c.workout_id].push(c);
+          return acc;
+        }, {});
+      }
+
+      const workoutsWithCheers = workouts.map(w => ({
+        ...w,
+        cheers: cheersMap[w.id] || [],
+      }));
+
+      return NextResponse.json(workoutsWithCheers);
     }
 
     const memberships = await db.prepare(`
