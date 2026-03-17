@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { v4 as uuid } from 'uuid';
 import db from '@/lib/db';
-import { authMiddleware } from '@/lib/auth';
+import { auth } from '@/lib/auth-config';
 
 export async function POST(request) {
-  const authCheck = await authMiddleware(request);
-  if (authCheck.error) {
-    return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -26,7 +26,7 @@ export async function POST(request) {
     await db.prepare(`
       INSERT INTO cheers (id, from_user_id, workout_id, message)
       VALUES (?, ?, ?, ?)
-    `).run(id, authCheck.user.id, workout_id, message || null);
+    `).run(id, session.user.id, workout_id, message || null);
 
     const cheer = await db.prepare(`
       SELECT c.*, u.username, u.avatar_url
@@ -43,9 +43,9 @@ export async function POST(request) {
 }
 
 export async function GET(request) {
-  const authCheck = await authMiddleware(request);
-  if (authCheck.error) {
-    return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {

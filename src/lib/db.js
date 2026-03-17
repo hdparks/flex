@@ -28,7 +28,7 @@ async function getClient() {
         id TEXT PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
         email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
+        password_hash TEXT,
         avatar_url TEXT,
         is_admin INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP

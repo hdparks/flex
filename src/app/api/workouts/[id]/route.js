@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { authMiddleware } from '@/lib/auth';
+import { auth } from '@/lib/auth-config';
 
 export async function GET(request, { params }) {
-  const authCheck = await authMiddleware(request);
-  if (authCheck.error) {
-    return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -37,9 +37,9 @@ export async function GET(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const authCheck = await authMiddleware(request);
-  if (authCheck.error) {
-    return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -49,7 +49,7 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Workout not found' }, { status: 404 });
     }
 
-    if (workout.user_id !== authCheck.user.id) {
+    if (workout.user_id !== session.user.id) {
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 
@@ -66,9 +66,9 @@ export async function DELETE(request, { params }) {
 }
 
 export async function PUT(request, { params }) {
-  const authCheck = await authMiddleware(request);
-  if (authCheck.error) {
-    return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -79,7 +79,7 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Workout not found' }, { status: 404 });
     }
 
-    if (workout.user_id !== authCheck.user.id) {
+    if (workout.user_id !== session.user.id) {
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 

@@ -13,8 +13,10 @@ export function ToastProvider({ children }) {
   useEffect(() => {
     mountedRef.current = true;
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      const timeouts = timeoutRefs.current;
       mountedRef.current = false;
-      timeoutRefs.current.forEach(clearTimeout);
+      timeouts.forEach(clearTimeout);
     };
   }, []);
 

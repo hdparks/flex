@@ -14,15 +14,14 @@ function clearToken() {
 }
 
 async function request(endpoint, options = {}) {
-  const token = getToken();
   const headers = {
     'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
     ...options.headers,
   };
 
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
+    credentials: 'include',
     headers,
   });
 
@@ -42,7 +41,13 @@ async function request(endpoint, options = {}) {
 export const api = {
   auth: {
     register: (userData) => request('/auth/register', { method: 'POST', body: JSON.stringify(userData) }),
-    login: (credentials) => request('/auth/login', { method: 'POST', body: JSON.stringify(credentials) }),
+    login: async (credentials) => {
+      const res = await request('/auth/login', { method: 'POST', body: JSON.stringify(credentials) });
+      if (res.token) {
+        setToken(res.token);
+      }
+      return res;
+    },
     me: () => request('/auth/me'),
   },
   admin: {

@@ -8,6 +8,7 @@ export const metadata = {
 
 import ServiceWorkerRegistration from '../components/ServiceWorkerRegistration';
 import PWAInstallPrompt from '../components/PWAInstallPrompt';
+import { Providers } from '../components/Providers';
 
 export default function RootLayout({ children }) {
   return (
@@ -17,9 +18,11 @@ export default function RootLayout({ children }) {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
       </head>
       <body>
-        <ServiceWorkerRegistration />
-        <PWAInstallPrompt />
-        {children}
+        <Providers>
+          <ServiceWorkerRegistration />
+          <PWAInstallPrompt />
+          {children}
+        </Providers>
       </body>
     </html>
   );

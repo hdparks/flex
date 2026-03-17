@@ -2,37 +2,17 @@ import { NextResponse } from 'next/server';
 import { v4 as uuid } from 'uuid';
 import db from '@/lib/db';
 import { notifyTeam } from '@/lib/push';
-
-async function authMiddleware(request) {
-  const authHeader = request.headers.get('authorization');
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return { error: 'No token provided', status: 401 };
-  }
-
-  const token = authHeader.split(' ')[1];
-  const secret = process.env.JWT_SECRET || 'spartan-race-secret-change-in-production';
-  
-  let decoded;
-  try {
-    const jwt = await import('jsonwebtoken');
-    decoded = jwt.verify(token, secret);
-  } catch (err) {
-    return { error: 'Invalid token', status: 401 };
-  }
-
-  return { user: decoded };
-}
+import { auth } from '@/lib/auth-config';
 
 export async function GET(request) {
-  const authCheck = await authMiddleware(request);
-  if (authCheck.error) {
-    return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     const { searchParams } = new URL(request.url);
-    const userId = authCheck.user.id;
+    const userId = session.user.id;
     
     if (searchParams.get('my') === 'true') {
       const workouts = await db.prepare(`
@@ -81,9 +61,9 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const authCheck = await authMiddleware(request);
-  if (authCheck.error) {
-    return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -99,13 +79,13 @@ export async function POST(request) {
     await db.prepare(`
       INSERT INTO workouts (id, user_id, type, title, description, duration_minutes, completed_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(id, authCheck.user.id, type, title, description || null, duration_minutes || null, completedAt);
+    `).run(id, session.user.id, type, title, description || null, duration_minutes || null, completedAt);
 
     const workout = await db.prepare('SELECT * FROM workouts WHERE id = ?').get(id);
 
-    const teams = await db.prepare('SELECT team_id FROM team_members WHERE user_id = ?').all(authCheck.user.id);
+    const teams = await db.prepare('SELECT team_id FROM team_members WHERE user_id = ?').all(session.user.id);
     for (const team of teams) {
-      notifyTeam(team.team_id, authCheck.user.id, authCheck.user.username, title).catch(console.error);
+      notifyTeam(team.team_id, session.user.id, session.user.name, title).catch(console.error);
     }
 
     return NextResponse.json(workout, { status: 201 });

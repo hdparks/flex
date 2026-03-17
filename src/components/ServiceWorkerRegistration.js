@@ -1,5 +1,6 @@
 'use client';
 import { useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
 
 async function urlBase64ToUint8Array(base64String) {
@@ -22,16 +23,16 @@ async function subscribeToPush(registration, publicKey) {
 }
 
 export default function ServiceWorkerRegistration() {
+  const { status } = useSession();
+
   useEffect(() => {
     async function init() {
       if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+      if (status !== 'authenticated') return;
 
       try {
         const registration = await navigator.serviceWorker.register('/sw.js');
         console.log('SW registered');
-
-        const token = api.getToken();
-        if (!token) return;
 
         const existingSub = await registration.pushManager.getSubscription();
         if (existingSub) return;
@@ -50,7 +51,7 @@ export default function ServiceWorkerRegistration() {
     }
 
     init();
-  }, []);
+  }, [status]);
 
   return null;
 }
