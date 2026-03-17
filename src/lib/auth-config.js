@@ -1,12 +1,13 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
+import { v4 as uuidv4 } from 'uuid';
 import db from './db';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      clientId: process.env.AUTH_GOOGLE_ID,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET,
     }),
   ],
   callbacks: {
@@ -14,7 +15,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (account?.provider === 'google' && user.email) {
         const existingUser = await db.prepare('SELECT * FROM users WHERE email = ?').get(user.email);
         if (!existingUser) {
-          const { v4: uuidv4 } = await import('uuid');
           const id = uuidv4();
           const username = user.name || user.email.split('@')[0] || 'User';
           
@@ -26,13 +26,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return true;
     },
     async jwt({ token, user }) {
-      if (user) {
-        const dbUser = await db.prepare('SELECT is_admin FROM users WHERE id = ?').get(user.id);
-        token.isAdmin = dbUser?.is_admin || false;
+      if (user?.email) {
+        const dbUser = await db.prepare('SELECT id, is_admin FROM users WHERE email = ?').get(user.email);
+        if (dbUser) {
+          token.userId = dbUser.id;
+          token.isAdmin = dbUser.is_admin || false;
+        }
+      } else if (!token.userId && token.email) {
+        const dbUser = await db.prepare('SELECT id, is_admin FROM users WHERE email = ?').get(token.email);
+        if (dbUser) {
+          token.userId = dbUser.id;
+          token.isAdmin = dbUser.is_admin || false;
+        }
       }
       return token;
     },
     async session({ session, token }) {
+      session.user.id = token.userId;
       session.user.isAdmin = token.isAdmin;
       return session;
     },

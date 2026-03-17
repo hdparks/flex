@@ -26,7 +26,7 @@ export async function GET(request) {
     }
   }
 
-  if (!session?.user) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -96,7 +96,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   const session = await auth();
-  if (!session?.user) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -107,15 +107,17 @@ export async function POST(request) {
       const teamId = uuid();
       const inviteCode = generateInviteCode();
       
-      await db.prepare(`
-        INSERT INTO teams (id, name, invite_code, created_by)
-        VALUES (?, ?, ?, ?)
-      `).run(teamId, name, inviteCode, session.user.id);
+      await db.transaction(async () => {
+        await db.prepare(`
+          INSERT INTO teams (id, name, invite_code, created_by)
+          VALUES (?, ?, ?, ?)
+        `).run(teamId, name, inviteCode, session.user.id);
 
-      await db.prepare(`
-        INSERT INTO team_members (team_id, user_id, role)
-        VALUES (?, ?, 'admin')
-      `).run(teamId, session.user.id);
+        await db.prepare(`
+          INSERT INTO team_members (team_id, user_id, role)
+          VALUES (?, ?, 'admin')
+        `).run(teamId, session.user.id);
+      });
 
       const team = await db.prepare('SELECT * FROM teams WHERE id = ?').get(teamId);
       return NextResponse.json({ ...team, members: [{ user_id: session.user.id, role: 'admin' }] }, { status: 201 });
@@ -156,7 +158,7 @@ export async function POST(request) {
 
 export async function DELETE(request) {
   const session = await auth();
-  if (!session?.user) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

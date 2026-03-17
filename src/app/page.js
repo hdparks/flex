@@ -10,9 +10,9 @@ export default function Home() {
   useEffect(() => {
     if (session) {
       const joinCode = sessionStorage.getItem('join_code');
-      sessionStorage.removeItem('join_code');
       
       if (joinCode) {
+        sessionStorage.removeItem('join_code');
         router.push(`/join?code=${encodeURIComponent(joinCode)}`);
       } else {
         router.push('/dashboard');

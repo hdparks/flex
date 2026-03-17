@@ -85,7 +85,8 @@ export async function POST(request) {
 
     const teams = await db.prepare('SELECT team_id FROM team_members WHERE user_id = ?').all(session.user.id);
     for (const team of teams) {
-      notifyTeam(team.team_id, session.user.id, session.user.name, title).catch(console.error);
+      const userName = session.user.name || session.user.email || session.user.id || 'Unknown User';
+      notifyTeam(team.team_id, session.user.id, userName, title).catch(console.error);
     }
 
     return NextResponse.json(workout, { status: 201 });

@@ -35,7 +35,14 @@ export default function ServiceWorkerRegistration() {
         console.log('SW registered');
 
         const existingSub = await registration.pushManager.getSubscription();
-        if (existingSub) return;
+        if (existingSub) {
+          await api.push.subscribe(existingSub).then(() => {
+            console.log('Push re-subscribed for current user');
+          }).catch(err => {
+            console.error('Push re-subscribe error:', err);
+          });
+          return;
+        }
 
         let publicKey = process.env.NEXT_PUBLIC_VAPID_KEY;
         if (!publicKey) {

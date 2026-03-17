@@ -43,9 +43,6 @@ export const api = {
     register: (userData) => request('/auth/register', { method: 'POST', body: JSON.stringify(userData) }),
     login: async (credentials) => {
       const res = await request('/auth/login', { method: 'POST', body: JSON.stringify(credentials) });
-      if (res.token) {
-        setToken(res.token);
-      }
       return res;
     },
     me: () => request('/auth/me'),

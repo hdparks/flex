@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth-config';
 
 export async function POST(request, { params }) {
   const session = await auth();
-  if (!session?.user) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -14,7 +14,7 @@ export async function POST(request, { params }) {
   }
 
   try {
-    const { userId } = params;
+    const { userId } = await params;
     
     const targetUser = await db.prepare('SELECT id, username, email, avatar_url FROM users WHERE id = ?').get(userId);
     if (!targetUser) {
