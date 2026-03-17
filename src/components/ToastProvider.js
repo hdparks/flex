@@ -1,18 +1,33 @@
 'use client';
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { Toast } from './Toast';
 
 const ToastContext = createContext(null);
+let nextToastId = 0;
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
+  const timeoutRefs = useRef([]);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      timeoutRefs.current.forEach(clearTimeout);
+    };
+  }, []);
 
   const toast = useCallback((message, type = 'info') => {
-    const id = Date.now();
+    const id = nextToastId++;
+    if (!mountedRef.current) return;
+    
     setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
+      if (!mountedRef.current) return;
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3000);
+    timeoutRefs.current.push(timeoutId);
   }, []);
 
   return (

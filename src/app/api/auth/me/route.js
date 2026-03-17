@@ -3,26 +3,12 @@ import db from '@/lib/db';
 import { authMiddleware } from '@/lib/auth';
 
 export async function GET(request) {
-  const authHeader = request.headers.get('authorization');
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'No token provided' }, { status: 401 });
+  const authCheck = await authMiddleware(request);
+  if (authCheck.error) {
+    return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
   }
 
-  const token = authHeader.split(' ')[1];
-  
-  const { JWT_SECRET } = await import('jsonwebtoken');
-  const secret = process.env.JWT_SECRET || 'spartan-race-secret-change-in-production';
-  
-  let decoded;
-  try {
-    const jwt = await import('jsonwebtoken');
-    decoded = jwt.verify(token, secret);
-  } catch (err) {
-    return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-  }
-
-  const user = await db.prepare('SELECT id, username, email, avatar_url, created_at FROM users WHERE id = ?').get(decoded.id);
+  const user = await db.prepare('SELECT id, username, email, avatar_url, created_at FROM users WHERE id = ?').get(authCheck.user.id);
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
@@ -32,7 +18,7 @@ export async function GET(request) {
     FROM team_members tm 
     JOIN teams t ON tm.team_id = t.id 
     WHERE tm.user_id = ?
-  `).all(decoded.id);
+  `).all(authCheck.user.id);
   
   return NextResponse.json({ user, teams });
 }

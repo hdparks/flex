@@ -1,47 +1,51 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'spartan-race-secret-change-in-production';
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET must be configured');
+  }
+  return secret;
+}
 
 export function generateToken(user) {
   return jwt.sign(
     { id: user.id, username: user.username },
-    JWT_SECRET,
+    getJwtSecret(),
     { expiresIn: '7d' }
   );
 }
 
-export function authMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization;
+export async function authMiddleware(request) {
+  const authHeader = request.headers.get('authorization');
   
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'No token provided' });
+    return { error: 'No token provided', status: 401 };
   }
 
   const token = authHeader.split(' ')[1];
-  
+  let decoded;
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-    next();
+    decoded = jwt.verify(token, getJwtSecret());
   } catch (err) {
-    return res.status(401).json({ error: 'Invalid token' });
-  }
-}
-
-export function optionalAuth(req, res, next) {
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return next();
+    return { error: 'Invalid token', status: 401 };
   }
 
-  const token = authHeader.split(' ')[1];
-  
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-  } catch (err) {
+  return { user: decoded };
+}
+
+export async function adminMiddleware(request, db) {
+  const authCheck = await authMiddleware(request);
+  if (authCheck.error) {
+    return authCheck;
+  }
+
+  const user = await db.prepare('SELECT is_admin FROM users WHERE id = ?').get(authCheck.user.id);
+  if (!user || !user.is_admin) {
+    return { error: 'Admin access required', status: 403 };
   }
   
-  next();
+  return { user: authCheck.user };
 }
+
+

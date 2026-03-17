@@ -2,30 +2,10 @@ import { NextResponse } from 'next/server';
 import { v4 as uuid } from 'uuid';
 import crypto from 'crypto';
 import db from '@/lib/db';
-
-async function authMiddleware(request) {
-  const authHeader = request.headers.get('authorization');
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return { error: 'No token provided', status: 401 };
-  }
-
-  const token = authHeader.split(' ')[1];
-  const secret = process.env.JWT_SECRET || 'spartan-race-secret-change-in-production';
-  
-  let decoded;
-  try {
-    const jwt = await import('jsonwebtoken');
-    decoded = jwt.verify(token, secret);
-  } catch (err) {
-    return { error: 'Invalid token', status: 401 };
-  }
-
-  return { user: decoded };
-}
+import { authMiddleware } from '@/lib/auth';
 
 function generateInviteCode() {
-  return crypto.randomBytes(3).toString('hex').toUpperCase();
+  return crypto.randomBytes(4).toString('hex').toUpperCase();
 }
 
 export async function GET(request) {
@@ -61,9 +41,10 @@ export async function GET(request) {
       }
 
       const teamIds = memberships.map(m => m.team_id);
-      const teamMembers = await db.prepare(`
+      const rows = await db.prepare(`
         SELECT DISTINCT user_id FROM team_members WHERE team_id IN (${teamIds.map(() => '?').join(',')})
-      `).all(...teamIds).map(m => m.user_id);
+      `).all(...teamIds);
+      const teamMembers = rows.map(m => m.user_id);
       
       if (teamMembers.length === 0) {
         return NextResponse.json([]);
@@ -173,7 +154,7 @@ export async function POST(request) {
   }
 }
 
-export async function DELETE(request, { params }) {
+export async function DELETE(request) {
   const authCheck = await authMiddleware(request);
   if (authCheck.error) {
     return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
@@ -182,7 +163,7 @@ export async function DELETE(request, { params }) {
   try {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
-    const { teamId } = params;
+    const teamId = searchParams.get('teamId');
 
     if (action === 'leave') {
       const membership = await db.prepare('SELECT * FROM team_members WHERE team_id = ? AND user_id = ?').get(teamId, authCheck.user.id);

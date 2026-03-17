@@ -33,7 +33,7 @@ export default function Home() {
       sessionStorage.removeItem('join_code');
       
       if (joinCode) {
-        router.push(`/join?code=${joinCode}`);
+        router.push(`/join?code=${encodeURIComponent(joinCode)}`);
       } else {
         router.push('/dashboard');
       }
@@ -98,19 +98,19 @@ export default function Home() {
               required
             />
           </div>
-          <div className="form-group">
-            <label className="label" htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              autoComplete="current-password"
-              className="input"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              required
-            />
-          </div>
+            <div className="form-group">
+              <label className="label" htmlFor="password">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                autoComplete={isLogin ? "current-password" : "new-password"}
+                className="input"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                required
+              />
+            </div>
           {error && <p className="error">{error}</p>}
           <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>
             {loading ? 'Loading...' : isLogin ? 'Sign In' : 'Create Account'}

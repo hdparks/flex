@@ -2,36 +2,10 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { v4 as uuid } from 'uuid';
 import db from '@/lib/db';
-import { generateToken } from '@/lib/auth';
-
-async function adminMiddleware(request) {
-  const authHeader = request.headers.get('authorization');
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return { error: 'No token provided', status: 401 };
-  }
-
-  const token = authHeader.split(' ')[1];
-  const secret = process.env.JWT_SECRET || 'spartan-race-secret-change-in-production';
-  
-  let decoded;
-  try {
-    const jwt = await import('jsonwebtoken');
-    decoded = jwt.verify(token, secret);
-  } catch (err) {
-    return { error: 'Invalid token', status: 401 };
-  }
-
-  const user = await db.prepare('SELECT is_admin FROM users WHERE id = ?').get(decoded.id);
-  if (!user || !user.is_admin) {
-    return { error: 'Admin access required', status: 403 };
-  }
-  
-  return { user: decoded };
-}
+import { adminMiddleware } from '@/lib/auth';
 
 export async function POST(request) {
-  const adminCheck = await adminMiddleware(request);
+  const adminCheck = await adminMiddleware(request, db);
   if (adminCheck.error) {
     return NextResponse.json({ error: adminCheck.error }, { status: adminCheck.status });
   }

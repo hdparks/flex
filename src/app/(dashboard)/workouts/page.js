@@ -3,8 +3,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../../../lib/api';
 import { useToast } from '../../../components/ToastProvider';
 import Link from 'next/link';
-
-const WORKOUT_TYPES = ['run', 'strength', 'cardio', 'hiit', 'flexibility', 'sport', 'other'];
+import { WORKOUT_TYPES } from '../../../lib/constants';
 
 function WorkoutCard({ workout, onUpdate, onDelete, toast }) {
   const [editing, setEditing] = useState(false);
@@ -149,25 +148,37 @@ export default function Workouts() {
   const { toast } = useToast();
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     api.workouts.my()
       .then(setWorkouts)
-      .catch(console.error)
+      .catch((err) => {
+        setError(err);
+        setWorkouts([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
   const handleUpdate = async (id, data) => {
     const updated = await api.workouts.update(id, data);
-    setWorkouts(workouts.map(w => w.id === id ? updated : w));
+    setWorkouts(prev => prev.map(w => w.id === id ? updated : w));
   };
 
   const handleDelete = async (id) => {
     await api.workouts.delete(id);
-    setWorkouts(workouts.filter(w => w.id !== id));
+    setWorkouts(prev => prev.filter(w => w.id !== id));
   };
 
   if (loading) return <div className="container">Loading...</div>;
+
+  if (error) {
+    return (
+      <div className="container">
+        <div className="error">Failed to load workouts: {error.message}</div>
+      </div>
+    );
+  }
 
   const totalMinutes = workouts.reduce((sum, w) => sum + (w.duration_minutes || 0), 0);
 

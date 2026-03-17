@@ -36,7 +36,7 @@ function JoinTeamContent() {
     if (isLoggedIn && team) {
       api.team.get()
         .then((data) => {
-          const member = data.teams?.find(t => t.invite_code === code);
+          const member = data.teams?.find(t => t.id === team.id);
           if (member) {
             setAlreadyMember(true);
           }

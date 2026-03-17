@@ -1,27 +1,7 @@
 import { NextResponse } from 'next/server';
 import { v4 as uuid } from 'uuid';
 import db from '@/lib/db';
-
-async function authMiddleware(request) {
-  const authHeader = request.headers.get('authorization');
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return { error: 'No token provided', status: 401 };
-  }
-
-  const token = authHeader.split(' ')[1];
-  const secret = process.env.JWT_SECRET || 'spartan-race-secret-change-in-production';
-  
-  let decoded;
-  try {
-    const jwt = await import('jsonwebtoken');
-    decoded = jwt.verify(token, secret);
-  } catch (err) {
-    return { error: 'Invalid token', status: 401 };
-  }
-
-  return { user: decoded };
-}
+import { authMiddleware } from '@/lib/auth';
 
 export async function POST(request) {
   const authCheck = await authMiddleware(request);
@@ -62,7 +42,7 @@ export async function POST(request) {
   }
 }
 
-export async function GET(request, { params }) {
+export async function GET(request) {
   const authCheck = await authMiddleware(request);
   if (authCheck.error) {
     return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });

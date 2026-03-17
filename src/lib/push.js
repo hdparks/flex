@@ -14,6 +14,11 @@ if (publicKey && privateKey) {
 }
 
 export async function sendNotification(userId, title, body, url) {
+  if (!publicKey || !privateKey) {
+    console.debug('VAPID keys not configured, skipping notification');
+    return;
+  }
+
   const subscriptions = await db.prepare('SELECT * FROM push_subscriptions WHERE user_id = ?').all(userId);
   
   const notification = JSON.stringify({
@@ -24,10 +29,16 @@ export async function sendNotification(userId, title, body, url) {
   });
 
   for (const sub of subscriptions) {
-    const pushSubscription = {
-      endpoint: sub.endpoint,
-      keys: JSON.parse(sub.keys)
-    };
+    let pushSubscription;
+    try {
+      pushSubscription = {
+        endpoint: sub.endpoint,
+        keys: JSON.parse(sub.keys)
+      };
+    } catch (err) {
+      console.error('Invalid push subscription keys:', err.message);
+      continue;
+    }
 
     try {
       await webpush.sendNotification(pushSubscription, notification);

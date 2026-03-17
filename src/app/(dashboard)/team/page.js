@@ -81,15 +81,18 @@ export default function Team() {
   };
 
   const isOnlyMember = (team) => {
-    return team.members && team.members.length === 1 && team.members[0].id === team.user_id;
+    return team.members && team.members.length === 1 && team.members[0].id === team.created_by;
   };
 
-  const copyInviteLink = (inviteCode) => {
-    const url = `${window.location.origin}/join?code=${inviteCode}`;
+  const copyInviteLink = async (inviteCode) => {
+    const url = `${window.location.origin}/join?code=${encodeURIComponent(inviteCode)}`;
     if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(url)
-        .then(() => toast('Invite link copied to clipboard!', 'success'))
-        .catch(() => toast(`Copy this link: ${url}`, 'info'));
+      try {
+        await navigator.clipboard.writeText(url);
+        toast('Invite link copied to clipboard!', 'success');
+      } catch (err) {
+        toast(`Copy this link: ${url}`, 'info');
+      }
     } else {
       toast(`Copy this link: ${url}`, 'info');
     }
@@ -211,7 +214,7 @@ export default function Team() {
               <div className="empty">No members yet</div>
             ) : (
               team.members.map((member) => (
-                <div key={member.user_id} className="card" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                <div key={member.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
                   <div className="avatar">{member.username?.[0]?.toUpperCase()}</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: '600' }}>{member.username}</div>

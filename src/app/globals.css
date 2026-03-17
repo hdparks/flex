@@ -10,7 +10,19 @@
   --success: #4ade80;
   --warning: #fbbf24;
   --error: #ef4444;
+  --error-light: #fef2f2;
   --border: #2a2a4a;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 * {
@@ -113,8 +125,8 @@ input, textarea, select {
 }
 
 .btn-icon.btn-danger:hover {
-  background: #fef2f2;
-  color: #dc2626;
+  background: var(--error-light);
+  color: var(--error);
 }
 
 .input {

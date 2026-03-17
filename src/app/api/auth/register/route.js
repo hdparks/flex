@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { v4 as uuid } from 'uuid';
 import db from '@/lib/db';
-import { generateToken, authMiddleware } from '@/lib/auth';
+import { generateToken } from '@/lib/auth';
 
 export async function POST(request) {
   try {

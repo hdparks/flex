@@ -65,8 +65,8 @@ export const api = {
     create: (name) => request('/team', { method: 'POST', body: JSON.stringify({ name }) }),
     join: (inviteCode) => request('/team', { method: 'POST', body: JSON.stringify({ invite_code: inviteCode }) }),
     getByInviteCode: (inviteCode) => request(`/team?invite_code=${inviteCode}`),
-    leave: (teamId) => request(`/team/${teamId}?action=leave`, { method: 'DELETE' }),
-    disband: (teamId) => request(`/team/${teamId}`, { method: 'DELETE' }),
+    leave: (teamId) => request(`/team?teamId=${teamId}&action=leave`, { method: 'DELETE' }),
+    disband: (teamId) => request(`/team?teamId=${teamId}`, { method: 'DELETE' }),
     feed: () => request('/team?feed=true'),
   },
   push: {

@@ -2,9 +2,12 @@
 
 export function Toast({ message, type = 'info' }) {
   const bgColor = type === 'error' ? '#dc2626' : type === 'success' ? '#16a34a' : 'var(--primary)';
+  const ariaLive = type === 'error' ? 'assertive' : 'polite';
   
   return (
     <div
+      role="alert"
+      aria-live={ariaLive}
       style={{
         background: bgColor,
         color: 'white',

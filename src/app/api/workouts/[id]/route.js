@@ -1,26 +1,6 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-
-async function authMiddleware(request) {
-  const authHeader = request.headers.get('authorization');
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return { error: 'No token provided', status: 401 };
-  }
-
-  const token = authHeader.split(' ')[1];
-  const secret = process.env.JWT_SECRET || 'spartan-race-secret-change-in-production';
-  
-  let decoded;
-  try {
-    const jwt = await import('jsonwebtoken');
-    decoded = jwt.verify(token, secret);
-  } catch (err) {
-    return { error: 'Invalid token', status: 401 };
-  }
-
-  return { user: decoded };
-}
+import { authMiddleware } from '@/lib/auth';
 
 export async function GET(request, { params }) {
   const authCheck = await authMiddleware(request);
@@ -73,8 +53,10 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 
-    await db.prepare('DELETE FROM cheers WHERE workout_id = ?').run(params.id);
-    await db.prepare('DELETE FROM workouts WHERE id = ?').run(params.id);
+    await db.transaction(async () => {
+      await db.prepare('DELETE FROM cheers WHERE workout_id = ?').run(params.id);
+      await db.prepare('DELETE FROM workouts WHERE id = ?').run(params.id);
+    });
     
     return NextResponse.json({ success: true });
   } catch (err) {

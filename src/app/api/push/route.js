@@ -2,27 +2,7 @@ import { NextResponse } from 'next/server';
 import { v4 as uuid } from 'uuid';
 import db from '@/lib/db';
 import { publicKey } from '@/lib/push';
-
-async function authMiddleware(request) {
-  const authHeader = request.headers.get('authorization');
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return { error: 'No token provided', status: 401 };
-  }
-
-  const token = authHeader.split(' ')[1];
-  const secret = process.env.JWT_SECRET || 'spartan-race-secret-change-in-production';
-  
-  let decoded;
-  try {
-    const jwt = await import('jsonwebtoken');
-    decoded = jwt.verify(token, secret);
-  } catch (err) {
-    return { error: 'Invalid token', status: 401 };
-  }
-
-  return { user: decoded };
-}
+import { authMiddleware } from '@/lib/auth';
 
 export async function GET(request) {
   return NextResponse.json({ publicKey });
@@ -44,6 +24,7 @@ export async function POST(request) {
       await db.prepare(`
         INSERT INTO push_subscriptions (id, user_id, endpoint, keys)
         VALUES (?, ?, ?, ?)
+        ON CONFLICT(endpoint) DO UPDATE SET keys = excluded.keys, user_id = excluded.user_id, id = excluded.id
       `).run(id, authCheck.user.id, subscription.endpoint, keys);
 
       return NextResponse.json({ success: true });
