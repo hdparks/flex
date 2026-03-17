@@ -1,47 +1,27 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { api } from '../lib/api';
+import { useSession, signIn } from 'next-auth/react';
 
 export default function Home() {
   const router = useRouter();
-  const [isLogin, setIsLogin] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [form, setForm] = useState({ username: '', email: '', password: '' });
+  const { data: session } = useSession();
 
   useEffect(() => {
-    const token = api.getToken();
-    if (token) {
-      router.replace('/dashboard');
-    }
-  }, [router]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      const res = isLogin 
-        ? await api.auth.login({ email: form.email, password: form.password })
-        : await api.auth.register(form);
-      
-      api.setToken(res.token);
-      
+    if (session) {
       const joinCode = sessionStorage.getItem('join_code');
-      sessionStorage.removeItem('join_code');
       
       if (joinCode) {
+        sessionStorage.removeItem('join_code');
         router.push(`/join?code=${encodeURIComponent(joinCode)}`);
       } else {
         router.push('/dashboard');
       }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
     }
+  }, [session, router]);
+
+  const handleGoogleSignIn = () => {
+    signIn('google', { callbackUrl: '/dashboard' });
   };
 
   return (
@@ -52,70 +32,33 @@ export default function Home() {
       </div>
 
       <div className="card">
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-          <button
-            className={`btn ${isLogin ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ flex: 1 }}
-            onClick={() => setIsLogin(true)}
-          >
-            Sign In
-          </button>
-          <button
-            className={`btn ${!isLogin ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ flex: 1 }}
-            onClick={() => setIsLogin(false)}
-          >
-            Sign Up
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          {!isLogin && (
-            <div className="form-group">
-              <label className="label" htmlFor="username">Username</label>
-              <input
-                type="text"
-                id="username"
-                name="username"
-                autoComplete="username"
-                className="input"
-                value={form.username}
-                onChange={(e) => setForm({ ...form, username: e.target.value })}
-                required
-              />
-            </div>
-          )}
-          <div className="form-group">
-            <label className="label" htmlFor="email">Email</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              autoComplete="email"
-              className="input"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              required
-            />
-          </div>
-            <div className="form-group">
-              <label className="label" htmlFor="password">Password</label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                autoComplete={isLogin ? "current-password" : "new-password"}
-                className="input"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                required
-              />
-            </div>
-          {error && <p className="error">{error}</p>}
-          <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>
-            {loading ? 'Loading...' : isLogin ? 'Sign In' : 'Create Account'}
-          </button>
-        </form>
+        <button 
+          onClick={handleGoogleSignIn}
+          style={{ 
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.75rem',
+            padding: '0.75rem 1rem',
+            fontSize: '1rem',
+            fontWeight: 500,
+            color: '#333',
+            backgroundColor: '#e5e5e5',
+            border: '1px solid #ddd',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s',
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+            <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
+            <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
+          </svg>
+          Sign in with Google
+        </button>
       </div>
     </div>
   );

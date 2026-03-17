@@ -2,16 +2,16 @@ import { NextResponse } from 'next/server';
 import { v4 as uuid } from 'uuid';
 import db from '@/lib/db';
 import { publicKey } from '@/lib/push';
-import { authMiddleware } from '@/lib/auth';
+import { auth } from '@/lib/auth-config';
 
 export async function GET(request) {
   return NextResponse.json({ publicKey });
 }
 
 export async function POST(request) {
-  const authCheck = await authMiddleware(request);
-  if (authCheck.error) {
-    return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -25,14 +25,14 @@ export async function POST(request) {
         INSERT INTO push_subscriptions (id, user_id, endpoint, keys)
         VALUES (?, ?, ?, ?)
         ON CONFLICT(endpoint) DO UPDATE SET keys = excluded.keys, user_id = excluded.user_id, id = excluded.id
-      `).run(id, authCheck.user.id, subscription.endpoint, keys);
+      `).run(id, session.user.id, subscription.endpoint, keys);
 
       return NextResponse.json({ success: true });
     }
     
     if (endpoint) {
       await db.prepare('DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint = ?')
-        .run(authCheck.user.id, endpoint);
+        .run(session.user.id, endpoint);
 
       return NextResponse.json({ success: true });
     }

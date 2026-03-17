@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 import { v4 as uuid } from 'uuid';
 import crypto from 'crypto';
 import db from '@/lib/db';
-import { authMiddleware } from '@/lib/auth';
+import { auth } from '@/lib/auth-config';
 
 function generateInviteCode() {
   return crypto.randomBytes(4).toString('hex').toUpperCase();
 }
 
 export async function GET(request) {
+  const session = await auth();
   const { searchParams } = new URL(request.url);
   const inviteCode = searchParams.get('invite_code');
   
@@ -25,16 +26,15 @@ export async function GET(request) {
     }
   }
 
-  const authCheck = await authMiddleware(request);
-  if (authCheck.error) {
-    return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     if (searchParams.get('feed') === 'true') {
       const memberships = await db.prepare(`
         SELECT team_id FROM team_members WHERE user_id = ?
-      `).all(authCheck.user.id);
+      `).all(session.user.id);
 
       if (memberships.length === 0) {
         return NextResponse.json([]);
@@ -69,7 +69,7 @@ export async function GET(request) {
       FROM team_members tm
       JOIN teams t ON tm.team_id = t.id
       WHERE tm.user_id = ?
-    `).all(authCheck.user.id);
+    `).all(session.user.id);
 
     if (memberships.length === 0) {
       return NextResponse.json({ teams: [] });
@@ -95,9 +95,9 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const authCheck = await authMiddleware(request);
-  if (authCheck.error) {
-    return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -107,18 +107,20 @@ export async function POST(request) {
       const teamId = uuid();
       const inviteCode = generateInviteCode();
       
-      await db.prepare(`
-        INSERT INTO teams (id, name, invite_code, created_by)
-        VALUES (?, ?, ?, ?)
-      `).run(teamId, name, inviteCode, authCheck.user.id);
+      await db.transaction(async () => {
+        await db.prepare(`
+          INSERT INTO teams (id, name, invite_code, created_by)
+          VALUES (?, ?, ?, ?)
+        `).run(teamId, name, inviteCode, session.user.id);
 
-      await db.prepare(`
-        INSERT INTO team_members (team_id, user_id, role)
-        VALUES (?, ?, 'admin')
-      `).run(teamId, authCheck.user.id);
+        await db.prepare(`
+          INSERT INTO team_members (team_id, user_id, role)
+          VALUES (?, ?, 'admin')
+        `).run(teamId, session.user.id);
+      });
 
       const team = await db.prepare('SELECT * FROM teams WHERE id = ?').get(teamId);
-      return NextResponse.json({ ...team, members: [{ user_id: authCheck.user.id, role: 'admin' }] }, { status: 201 });
+      return NextResponse.json({ ...team, members: [{ user_id: session.user.id, role: 'admin' }] }, { status: 201 });
     }
     
     if (invite_code) {
@@ -127,7 +129,7 @@ export async function POST(request) {
         return NextResponse.json({ error: 'Invalid invite code' }, { status: 404 });
       }
 
-      const existing = await db.prepare('SELECT 1 FROM team_members WHERE team_id = ? AND user_id = ?').get(team.id, authCheck.user.id);
+      const existing = await db.prepare('SELECT 1 FROM team_members WHERE team_id = ? AND user_id = ?').get(team.id, session.user.id);
       if (existing) {
         return NextResponse.json({ error: 'You are already a member of this team' }, { status: 400 });
       }
@@ -135,7 +137,7 @@ export async function POST(request) {
       await db.prepare(`
         INSERT INTO team_members (team_id, user_id, role)
         VALUES (?, ?, 'member')
-      `).run(team.id, authCheck.user.id);
+      `).run(team.id, session.user.id);
 
       const members = await db.prepare(`
         SELECT u.id, u.username, u.avatar_url, tm.role, tm.joined_at
@@ -155,9 +157,9 @@ export async function POST(request) {
 }
 
 export async function DELETE(request) {
-  const authCheck = await authMiddleware(request);
-  if (authCheck.error) {
-    return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -166,7 +168,7 @@ export async function DELETE(request) {
     const teamId = searchParams.get('teamId');
 
     if (action === 'leave') {
-      const membership = await db.prepare('SELECT * FROM team_members WHERE team_id = ? AND user_id = ?').get(teamId, authCheck.user.id);
+      const membership = await db.prepare('SELECT * FROM team_members WHERE team_id = ? AND user_id = ?').get(teamId, session.user.id);
       if (!membership) {
         return NextResponse.json({ error: 'You are not a member of this team' }, { status: 404 });
       }
@@ -183,7 +185,7 @@ export async function DELETE(request) {
         }
       }
 
-      await db.prepare('DELETE FROM team_members WHERE team_id = ? AND user_id = ?').run(teamId, authCheck.user.id);
+      await db.prepare('DELETE FROM team_members WHERE team_id = ? AND user_id = ?').run(teamId, session.user.id);
       return NextResponse.json({ success: true });
     }
 
@@ -192,7 +194,7 @@ export async function DELETE(request) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 });
     }
 
-    if (team.created_by !== authCheck.user.id) {
+    if (team.created_by !== session.user.id) {
       return NextResponse.json({ error: 'Only the team creator can disband this team' }, { status: 403 });
     }
 

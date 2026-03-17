@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { authMiddleware } from '@/lib/auth';
+import { auth } from '@/lib/auth-config';
 
 export async function GET(request) {
-  const authCheck = await authMiddleware(request);
-  if (authCheck.error) {
-    return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const user = await db.prepare('SELECT id, username, email, avatar_url, created_at FROM users WHERE id = ?').get(authCheck.user.id);
+  const user = await db.prepare('SELECT id, username, email, avatar_url, created_at FROM users WHERE id = ?').get(session.user.id);
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
@@ -18,7 +18,7 @@ export async function GET(request) {
     FROM team_members tm 
     JOIN teams t ON tm.team_id = t.id 
     WHERE tm.user_id = ?
-  `).all(authCheck.user.id);
+  `).all(session.user.id);
   
   return NextResponse.json({ user, teams });
 }

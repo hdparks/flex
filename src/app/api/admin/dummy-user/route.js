@@ -1,20 +1,24 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
 import { v4 as uuid } from 'uuid';
 import db from '@/lib/db';
-import { adminMiddleware } from '@/lib/auth';
+import { auth } from '@/lib/auth-config';
 
 export async function POST(request) {
-  const adminCheck = await adminMiddleware(request, db);
-  if (adminCheck.error) {
-    return NextResponse.json({ error: adminCheck.error }, { status: adminCheck.status });
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const adminUser = await db.prepare('SELECT is_admin FROM users WHERE id = ?').get(session.user.id);
+  if (!adminUser?.is_admin) {
+    return NextResponse.json({ error: 'Admin only' }, { status: 403 });
   }
 
   try {
-    const { username, email, password } = await request.json();
+    const { username, email } = await request.json();
     
-    if (!username || !email || !password) {
-      return NextResponse.json({ error: 'Username, email, and password required' }, { status: 400 });
+    if (!username || !email) {
+      return NextResponse.json({ error: 'Username and email required' }, { status: 400 });
     }
 
     const existing = await db.prepare('SELECT id FROM users WHERE email = ? OR username = ?').get(email, username);
@@ -22,10 +26,9 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Username or email already exists' }, { status: 400 });
     }
 
-    const password_hash = await bcrypt.hash(password, 10);
     const id = uuid();
     
-    await db.prepare('INSERT INTO users (id, username, email, password_hash) VALUES (?, ?, ?, ?)').run(id, username, email, password_hash);
+    await db.prepare('INSERT INTO users (id, username, email) VALUES (?, ?, ?)').run(id, username, email);
     
     const user = { id, username, email };
     

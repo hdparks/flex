@@ -1,21 +1,22 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { authMiddleware } from '@/lib/auth';
+import { auth } from '@/lib/auth-config';
 
 export async function GET(request, { params }) {
-  const authCheck = await authMiddleware(request);
-  if (authCheck.error) {
-    return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
+    const { id } = await params;
     const workout = await db.prepare(`
       SELECT w.*, u.username, u.avatar_url,
         (SELECT COUNT(*) FROM cheers WHERE workout_id = w.id) as cheer_count
       FROM workouts w
       JOIN users u ON w.user_id = u.id
       WHERE w.id = ?
-    `).get(params.id);
+    `).get(id);
 
     if (!workout) {
       return NextResponse.json({ error: 'Workout not found' }, { status: 404 });
@@ -27,7 +28,7 @@ export async function GET(request, { params }) {
       JOIN users u ON c.from_user_id = u.id
       WHERE c.workout_id = ?
       ORDER BY c.created_at DESC
-    `).all(params.id);
+    `).all(id);
 
     return NextResponse.json({ ...workout, cheers });
   } catch (err) {
@@ -37,25 +38,26 @@ export async function GET(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const authCheck = await authMiddleware(request);
-  if (authCheck.error) {
-    return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const workout = await db.prepare('SELECT * FROM workouts WHERE id = ?').get(params.id);
+    const { id } = await params;
+    const workout = await db.prepare('SELECT * FROM workouts WHERE id = ?').get(id);
     
     if (!workout) {
       return NextResponse.json({ error: 'Workout not found' }, { status: 404 });
     }
 
-    if (workout.user_id !== authCheck.user.id) {
+    if (workout.user_id !== session.user.id) {
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 
     await db.transaction(async () => {
-      await db.prepare('DELETE FROM cheers WHERE workout_id = ?').run(params.id);
-      await db.prepare('DELETE FROM workouts WHERE id = ?').run(params.id);
+      await db.prepare('DELETE FROM cheers WHERE workout_id = ?').run(id);
+      await db.prepare('DELETE FROM workouts WHERE id = ?').run(id);
     });
     
     return NextResponse.json({ success: true });
@@ -66,20 +68,21 @@ export async function DELETE(request, { params }) {
 }
 
 export async function PUT(request, { params }) {
-  const authCheck = await authMiddleware(request);
-  if (authCheck.error) {
-    return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
+    const { id } = await params;
     const body = await request.json();
-    const workout = await db.prepare('SELECT * FROM workouts WHERE id = ?').get(params.id);
+    const workout = await db.prepare('SELECT * FROM workouts WHERE id = ?').get(id);
     
     if (!workout) {
       return NextResponse.json({ error: 'Workout not found' }, { status: 404 });
     }
 
-    if (workout.user_id !== authCheck.user.id) {
+    if (workout.user_id !== session.user.id) {
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 
@@ -95,10 +98,10 @@ export async function PUT(request, { params }) {
       description ?? workout.description,
       duration_minutes !== undefined ? duration_minutes : workout.duration_minutes,
       completed_at ?? workout.completed_at,
-      params.id
+      id
     );
 
-    const updated = await db.prepare('SELECT * FROM workouts WHERE id = ?').get(params.id);
+    const updated = await db.prepare('SELECT * FROM workouts WHERE id = ?').get(id);
     return NextResponse.json(updated);
   } catch (err) {
     console.error(err);

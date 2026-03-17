@@ -1,12 +1,31 @@
 import { NextResponse } from 'next/server';
 import { v4 as uuid } from 'uuid';
 import db from '@/lib/db';
-import { authMiddleware } from '@/lib/auth';
+import { auth } from '@/lib/auth-config';
+
+async function canAccessWorkout(sessionUserId, workoutId) {
+  const workout = await db.prepare('SELECT user_id FROM workouts WHERE id = ?').get(workoutId);
+  if (!workout) return null;
+
+  if (workout.user_id === sessionUserId) {
+    return true;
+  }
+
+  const memberships = await db.prepare('SELECT team_id FROM team_members WHERE user_id = ?').all(sessionUserId);
+  if (memberships.length === 0) return false;
+
+  const teamIds = memberships.map(m => m.team_id);
+  const ownerMemberships = await db.prepare(
+    'SELECT team_id FROM team_members WHERE user_id = ? AND team_id IN (' + teamIds.map(() => '?').join(',') + ')'
+  ).all(workout.user_id, ...teamIds);
+
+  return ownerMemberships.length > 0;
+}
 
 export async function POST(request) {
-  const authCheck = await authMiddleware(request);
-  if (authCheck.error) {
-    return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -21,12 +40,17 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Workout not found' }, { status: 404 });
     }
 
+    const canAccess = await canAccessWorkout(session.user.id, workout_id);
+    if (!canAccess) {
+      return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+    }
+
     const id = uuid();
     
     await db.prepare(`
       INSERT INTO cheers (id, from_user_id, workout_id, message)
       VALUES (?, ?, ?, ?)
-    `).run(id, authCheck.user.id, workout_id, message || null);
+    `).run(id, session.user.id, workout_id, message || null);
 
     const cheer = await db.prepare(`
       SELECT c.*, u.username, u.avatar_url
@@ -43,9 +67,9 @@ export async function POST(request) {
 }
 
 export async function GET(request) {
-  const authCheck = await authMiddleware(request);
-  if (authCheck.error) {
-    return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -54,6 +78,16 @@ export async function GET(request) {
 
     if (!workoutId) {
       return NextResponse.json({ error: 'Workout ID required' }, { status: 400 });
+    }
+
+    const workout = await db.prepare('SELECT * FROM workouts WHERE id = ?').get(workoutId);
+    if (!workout) {
+      return NextResponse.json({ error: 'Workout not found' }, { status: 404 });
+    }
+
+    const canAccess = await canAccessWorkout(session.user.id, workoutId);
+    if (!canAccess) {
+      return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 
     const cheers = await db.prepare(`

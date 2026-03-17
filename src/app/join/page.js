@@ -1,28 +1,27 @@
 'use client';
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { api } from '../../lib/api';
 
 function JoinTeamContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { data: session, status } = useSession();
   const code = searchParams.get('code');
   
   const [team, setTeam] = useState(null);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState('');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [alreadyMember, setAlreadyMember] = useState(false);
+  const isLoggedIn = status === 'authenticated';
 
   useEffect(() => {
     if (!code) {
       setLoading(false);
       return;
     }
-
-    const token = api.getToken();
-    setIsLoggedIn(!!token);
 
     api.team.getByInviteCode(code)
       .then(setTeam)

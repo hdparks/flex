@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { api } from '../../lib/api';
+import { useSession, signOut } from 'next-auth/react';
 import { ToastProvider } from '../../components/ToastProvider';
 
 const navItems = [
@@ -14,53 +14,39 @@ const navItems = [
 export default function DashboardLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const hasValidated = useRef(false);
+  const { data: session, status } = useSession();
 
   useEffect(() => {
-    if (hasValidated.current) return;
-    hasValidated.current = true;
-
-    const token = api.getToken();
-    if (!token) {
-      setLoading(false);
+    if (status === 'unauthenticated') {
       router.replace('/');
-      return;
     }
+  }, [status, router]);
 
-    api.auth.me()
-      .then((data) => {
-        setUser(data.user);
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (err.message === 'Unauthorized' || err.message?.includes('token') || err.message?.includes('No token')) {
-          api.clearToken();
-          router.replace('/');
-        } else {
-          console.error('Auth error:', err);
-          setUser(null);
-          setLoading(false);
-        }
-      });
-  }, [router]);
-
-  const handleLogout = () => {
-    api.clearToken();
-    router.replace('/');
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: '/' });
   };
 
-  if (loading) return null;
-  if (!user) return null;
+  if (status === 'loading') {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <span>Loading...</span>
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated') {
+    return null;
+  }
+
+  const username = session?.user?.name || 'Athlete';
 
   return (
     <ToastProvider>
       <div className="container" style={{ paddingBottom: '5rem' }}>
         <header className="header">
           <div>
-            <h1>Hey, {user.username}!</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Let's get moving</p>
+            <h1>Hey, {username}!</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Let&apos;s get moving</p>
           </div>
           <button onClick={handleLogout} className="btn btn-ghost" style={{ padding: '0.5rem' }}>
             🚪
