@@ -1,4 +1,5 @@
 **/node_modules/
 .next/
 backend/data/
+data/
 .env.local

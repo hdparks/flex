@@ -1,0 +1,1 @@
+export const WORKOUT_TYPES = ['run', 'strength', 'cardio', 'hiit', 'flexibility', 'sport', 'other'];
