@@ -1,9 +1,9 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { api } from '../../lib/api';
 
-export default function JoinTeam() {
+function JoinTeamContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const code = searchParams.get('code');
@@ -137,5 +137,21 @@ export default function JoinTeam() {
         )}
       </div>
     </div>
+  );
+}
+
+function Loading() {
+  return (
+    <div className="container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+      <p>Loading...</p>
+    </div>
+  );
+}
+
+export default function JoinTeam() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <JoinTeamContent />
+    </Suspense>
   );
 }
