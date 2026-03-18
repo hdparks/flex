@@ -13,11 +13,15 @@ export async function uploadImage(base64Data) {
   }
 
   const mimeType = base64Match[1];
-  const imageBuffer = Buffer.from(base64Match[2], 'base64');
+  const base64Payload = base64Match[2];
+  const paddingCount = (base64Payload.match(/=/g) || []).length;
+  const decodedLength = Math.floor((base64Payload.length * 3) / 4) - paddingCount;
 
-  if (imageBuffer.length > MAX_IMAGE_SIZE) {
+  if (decodedLength > MAX_IMAGE_SIZE) {
     throw new Error('Image too large (max 500KB)');
   }
+
+  const imageBuffer = Buffer.from(base64Payload, 'base64');
 
   const file = new UTFile([imageBuffer], `cheer-${Date.now()}.${mimeType}`, {
     type: `image/${mimeType}`,

@@ -17,6 +17,12 @@ function ProfileDropdown({ user }) {
   const dropdownRef = useRef(null);
 
   useEffect(() => {
+    if (user?.image) {
+      setImgError(false);
+    }
+  }, [user?.image]);
+
+  useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setOpen(false);
@@ -32,6 +38,9 @@ function ProfileDropdown({ user }) {
         onClick={() => setOpen(!open)}
         className="btn btn-ghost"
         style={{ padding: '0.25rem', borderRadius: '50%', width: '40px', height: '40px', overflow: 'hidden' }}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls="profile-menu"
       >
         {user?.image && !imgError ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -48,22 +57,26 @@ function ProfileDropdown({ user }) {
         )}
       </button>
       {open && (
-        <div style={{
-          position: 'absolute',
-          top: '100%',
-          right: 0,
-          marginTop: '0.5rem',
-          background: 'var(--card-bg)',
-          border: '1px solid var(--border)',
-          borderRadius: '0.5rem',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          minWidth: '150px',
-          zIndex: 50,
-          overflow: 'hidden',
-        }}>
+        <div
+          id="profile-menu"
+          role="menu"
+          style={{
+            position: 'absolute',
+            top: '100%',
+            right: 0,
+            marginTop: '0.5rem',
+            background: 'var(--card-bg)',
+            border: '1px solid var(--border)',
+            borderRadius: '0.5rem',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            minWidth: '150px',
+            zIndex: 50,
+            overflow: 'hidden',
+          }}>
           <Link
             href="/profile"
             onClick={() => setOpen(false)}
+            role="menuitem"
             style={{
               display: 'block',
               padding: '0.75rem 1rem',
@@ -76,6 +89,7 @@ function ProfileDropdown({ user }) {
           </Link>
           <button
             onClick={() => signOut({ callbackUrl: '/' })}
+            role="menuitem"
             style={{
               display: 'block',
               width: '100%',

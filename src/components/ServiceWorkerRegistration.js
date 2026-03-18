@@ -5,6 +5,10 @@ import { api } from '@/lib/api';
 
 function urlBase64ToUint8Array(base64String) {
   let base64 = base64String.replace(/-/g, '+').replace(/_/g, '/');
+  const padding = base64.length % 4;
+  if (padding) {
+    base64 += '='.repeat(4 - padding);
+  }
   const rawData = window.atob(base64);
   const outputArray = new Uint8Array(rawData.length);
   for (let i = 0; i < rawData.length; ++i) {
@@ -36,7 +40,7 @@ export default function ServiceWorkerRegistration() {
 
         const existingSub = await registration.pushManager.getSubscription();
         if (existingSub) {
-          await api.push.subscribe(existingSub).then(() => {
+          await api.push.subscribe(existingSub.toJSON()).then(() => {
             console.log('Push re-subscribed for current user');
           }).catch(err => {
             console.error('Push re-subscribe error:', err);
@@ -50,7 +54,7 @@ export default function ServiceWorkerRegistration() {
           publicKey = serverKey;
         }
         const subscription = await subscribeToPush(registration, publicKey);
-        await api.push.subscribe(subscription);
+        await api.push.subscribe(subscription.toJSON());
         console.log('Push subscribed');
       } catch (err) {
         console.error('SW/Push init error:', err);

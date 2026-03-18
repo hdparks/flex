@@ -4,12 +4,6 @@ import { useRouter } from 'next/navigation';
 import { useSession, signIn } from 'next-auth/react';
 
 export default function Home() {
-	let publicKey = process.env.NEXT_PUBLIC_VAPID_KEY;
-console.log('Env key:', publicKey);
-console.log('Final key:', publicKey);
-
-
-
   const router = useRouter();
   const { data: session } = useSession();
 

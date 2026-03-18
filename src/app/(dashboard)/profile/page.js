@@ -7,16 +7,26 @@ export default function ProfilePage() {
   const { data: session, update: updateSession } = useSession();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [profileError, setProfileError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [username, setUsername] = useState('');
   const [avatarPreview, setAvatarPreview] = useState('');
   const fileInputRef = useRef(null);
 
-  useEffect(() => {
+  const fetchProfile = () => {
+    setLoading(true);
+    setProfileError(null);
     api.profile.get()
       .then(setUser)
-      .catch(console.error)
+      .catch((err) => {
+        setProfileError(err);
+        console.error(err);
+      })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchProfile();
   }, []);
 
   useEffect(() => {
@@ -33,6 +43,19 @@ export default function ProfilePage() {
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    if (!allowedTypes.includes(file.type)) {
+      alert('Please select a valid image file (PNG, JPEG, or WebP)');
+      return;
+    }
+
+    if (file.size > maxSize) {
+      alert('Image size must be less than 5MB');
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = () => {
@@ -67,14 +90,25 @@ export default function ProfilePage() {
 
   if (loading) return <div className="container">Loading...</div>;
 
+  if (profileError) {
+    return (
+      <div className="container" style={{ textAlign: 'center', padding: '2rem' }}>
+        <p style={{ color: 'var(--error)', marginBottom: '1rem' }}>Failed to load profile: {profileError.message}</p>
+        <button className="btn btn-primary" onClick={fetchProfile}>Retry</button>
+      </div>
+    );
+  }
+
   return (
     <div>
       <h1 style={{ marginBottom: '1.5rem' }}>My Profile</h1>
 
       <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
-        <div
+        <button
+          type="button"
           onClick={handleAvatarClick}
-          style={{ cursor: 'pointer', display: 'inline-block', position: 'relative' }}
+          aria-label="Change profile photo"
+          style={{ cursor: 'pointer', display: 'inline-block', position: 'relative', background: 'none', border: 'none', padding: 0 }}
         >
           {avatarPreview ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -121,7 +155,7 @@ export default function ProfilePage() {
           >
             📷
           </div>
-        </div>
+        </button>
         <input
           ref={fileInputRef}
           type="file"
@@ -143,6 +177,7 @@ export default function ProfilePage() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="Your username"
+            readOnly={!user || profileError}
           />
         </div>
 
@@ -164,7 +199,7 @@ export default function ProfilePage() {
           className="btn btn-primary"
           style={{ width: '100%', marginTop: '1rem' }}
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !user || profileError}
         >
           {saving ? 'Saving...' : 'Save Changes'}
         </button>

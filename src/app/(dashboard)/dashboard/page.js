@@ -3,10 +3,11 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '../../../lib/api';
 import { useSession } from 'next-auth/react';
 import { ImagePlus, Smile, CirclePlus } from 'lucide-react';
+import { useToast } from '../../../components/ToastProvider';
 
 const EMOJIS = ['🔥', '💪', '👏', '❤️', '🎉', '⭐', '🚀', '💯'];
 
-function CheerButton({ workoutId, onCheer }) {
+function CheerButton({ workoutId, onCheer, disabled }) {
   const [open, setOpen] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
@@ -14,11 +15,13 @@ function CheerButton({ workoutId, onCheer }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const popoverRef = useRef(null);
+  const timeoutRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
     const handleClickOutside = (event) => {
       if (popoverRef.current && !popoverRef.current.contains(event.target)) {
+        stopCamera();
         setOpen(false);
       }
     };
@@ -37,7 +40,7 @@ function CheerButton({ workoutId, onCheer }) {
       streamRef.current = stream;
       setShowCamera(true);
       setVideoReady(false);
-      setTimeout(() => {
+      timeoutRef.current = setTimeout(() => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
@@ -57,6 +60,7 @@ function CheerButton({ workoutId, onCheer }) {
       ctx.drawImage(videoRef.current, 0, 0);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
       setCapturedImage(dataUrl);
+      stopCamera();
     }
   };
 
@@ -64,16 +68,21 @@ function CheerButton({ workoutId, onCheer }) {
     if (capturedImage) {
       await onCheer(workoutId, null, capturedImage);
       setOpen(false);
-      setShowCamera(false);
-      setCapturedImage(null);
       stopCamera();
     }
   };
 
   const stopCamera = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
     }
     setShowCamera(false);
     setCapturedImage(null);
@@ -82,6 +91,10 @@ function CheerButton({ workoutId, onCheer }) {
 
   useEffect(() => {
     return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
         streamRef.current = null;
@@ -92,9 +105,10 @@ function CheerButton({ workoutId, onCheer }) {
   return (
     <div style={{ position: 'relative' }}>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => !disabled && setOpen(!open)}
         className="btn btn-ghost"
-        style={{ padding: '0.25rem 0.5rem', position: 'relative' }}
+        style={{ padding: '0.25rem 0.5rem', position: 'relative', opacity: disabled ? 0.5 : 1 }}
+        disabled={disabled}
       >
         <Smile size={20} />
 	<svg width={12} height={12} style={{ position: 'absolute', top: 3, right: 3}}>
@@ -187,6 +201,13 @@ function CheerButton({ workoutId, onCheer }) {
 }
 
 function WorkoutCard({ workout, onCheer, currentUserId }) {
+  const isOwnWorkout = currentUserId && workout.userId === currentUserId;
+
+  const handleCheer = () => {
+    if (!isOwnWorkout) {
+      onCheer(workout.id);
+    }
+  };
 
   return (
     <div className="card">
@@ -207,6 +228,11 @@ function WorkoutCard({ workout, onCheer, currentUserId }) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               <span style={{ fontWeight: '600' }}>{workout.username}</span>
+              {isOwnWorkout && (
+                <span style={{ fontSize: '0.75rem', color: 'var(--primary)', background: 'var(--surface-light)', padding: '0.125rem 0.375rem', borderRadius: '0.25rem' }}>
+                  you
+                </span>
+              )}
               <span className="timestamp">{formatDate(workout.completed_at || workout.created_at)}</span>
               <span className="workout-type">{workout.type}</span>
               {workout.duration_minutes && (
@@ -222,7 +248,7 @@ function WorkoutCard({ workout, onCheer, currentUserId }) {
 	      {workout?.description}
 	    </p>
             <div style={{ display: 'flex', alignSelf: 'end', alignItems: 'center', gap: '0.5rem', background: 'var(--surface-light)', padding: '0.25rem 0.5rem', borderRadius: '1rem', flexShrink: 0 }}>
-              <CheerButton workoutId={workout.id} onCheer={onCheer} />
+              <CheerButton workoutId={workout.id} onCheer={handleCheer} disabled={isOwnWorkout} />
               {workout.cheer_count > 0 && (
                 <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
                   {workout.cheer_count}
@@ -268,14 +294,19 @@ function WorkoutCard({ workout, onCheer, currentUserId }) {
 
 export default function Dashboard() {
   const { data: session } = useSession();
+  const { toast } = useToast();
   const [feed, setFeed] = useState([]);
   const [loading, setLoading] = useState(true);
   const [teams, setTeams] = useState([]);
 
   const loadFeed = () => {
-    api.team.feed()
+    setLoading(true);
+    return api.team.feed()
       .then(setFeed)
-      .catch(console.error)
+      .catch((err) => {
+        console.error(err);
+        throw err;
+      })
       .finally(() => setLoading(false));
   };
 
@@ -295,6 +326,7 @@ export default function Dashboard() {
       loadFeed();
     } catch (err) {
       console.error(err);
+      toast(err.message || 'Failed to cheer', 'error');
     }
   };
 
@@ -339,7 +371,9 @@ export default function Dashboard() {
 }
 
 function formatDate(dateStr) {
+  if (!dateStr) return 'Unknown date';
   const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return 'Unknown date';
   const now = new Date();
   const diff = now - date;
   const hours = Math.floor(diff / (1000 * 60 * 60));
