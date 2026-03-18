@@ -99,6 +99,7 @@ export default function ProfilePage() {
                 height: '120px',
                 fontSize: '3rem',
                 border: '3px solid var(--primary)',
+                borderRadius: '50%',
               }}
             >
               {username?.[0]?.toUpperCase() || '?'}

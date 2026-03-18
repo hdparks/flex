@@ -3,9 +3,8 @@ import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
 
-async function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+function urlBase64ToUint8Array(base64String) {
+  let base64 = base64String.replace(/-/g, '+').replace(/_/g, '/');
   const rawData = window.atob(base64);
   const outputArray = new Uint8Array(rawData.length);
   for (let i = 0; i < rawData.length; ++i) {
@@ -15,9 +14,10 @@ async function urlBase64ToUint8Array(base64String) {
 }
 
 async function subscribeToPush(registration, publicKey) {
+  const keyArray = urlBase64ToUint8Array(publicKey);
   const subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(publicKey),
+    applicationServerKey: keyArray,
   });
   return subscription;
 }

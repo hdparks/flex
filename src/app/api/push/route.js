@@ -22,9 +22,8 @@ export async function POST(request) {
       const keys = JSON.stringify(subscription.keys);
       
       await db.prepare(`
-        INSERT INTO push_subscriptions (id, user_id, endpoint, keys)
+        INSERT OR REPLACE INTO push_subscriptions (id, user_id, endpoint, keys)
         VALUES (?, ?, ?, ?)
-        ON CONFLICT(endpoint) DO UPDATE SET keys = excluded.keys, user_id = excluded.user_id, id = excluded.id
       `).run(id, session.user.id, subscription.endpoint, keys);
 
       return NextResponse.json({ success: true });

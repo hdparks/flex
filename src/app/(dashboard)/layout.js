@@ -13,6 +13,7 @@ const navItems = [
 
 function ProfileDropdown({ user }) {
   const [open, setOpen] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -32,9 +33,14 @@ function ProfileDropdown({ user }) {
         className="btn btn-ghost"
         style={{ padding: '0.25rem', borderRadius: '50%', width: '40px', height: '40px', overflow: 'hidden' }}
       >
-        {user?.image ? (
+        {user?.image && !imgError ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={user.image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img 
+            src={user.image} 
+            alt="Profile" 
+            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} 
+            onError={() => setImgError(true)}
+          />
         ) : (
           <div className="avatar" style={{ width: '100%', height: '100%', fontSize: '1.25rem' }}>
             {user?.name?.[0]?.toUpperCase() || '?'}

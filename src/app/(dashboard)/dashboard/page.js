@@ -78,11 +78,11 @@ function CheerButton({ workoutId, onCheer }) {
           left: '50%',
           transform: 'translateX(-50%)',
           marginBottom: '0.5rem',
-          background: 'var(--card-bg)',
+          background: 'var(--surface)',
           border: '1px solid var(--border)',
           borderRadius: '0.75rem',
           padding: '0.5rem',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
           zIndex: 50,
         }}>
           {!showCamera ? (
@@ -152,74 +152,77 @@ function WorkoutCard({ workout, onCheer, currentUserId }) {
 
   return (
     <div className="card">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-        {workout.avatar_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={workout.avatar_url}
-            alt={workout.username}
-            style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
-          />
-        ) : (
-          <div className="avatar">{workout.username?.[0]?.toUpperCase()}</div>
-        )}
-        <div>
-          <div style={{ fontWeight: '600' }}>{workout.username}</div>
-          <div className="timestamp">
-            completed a workout • {formatDate(workout.completed_at || workout.created_at)}
-          </div>
+      <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+        <div style={{ marginRight: '0.5rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem' }}>
+          {workout.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={workout.avatar_url}
+              alt={workout.username}
+              style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
+            />
+          ) : (
+            <div className="avatar">{workout.username?.[0]?.toUpperCase()}</div>
+          )}
         </div>
-      </div>
-      
-      <div style={{ paddingLeft: '3.25rem' }}>
-        <span className="workout-type">{workout.type}</span>
-        <h3 style={{ marginTop: '0.5rem' }}>{workout.title}</h3>
-        {workout.description && (
-          <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>{workout.description}</p>
-        )}
-        {workout.duration_minutes && (
-          <p style={{ color: 'var(--primary)', marginTop: '0.5rem', fontWeight: '600' }}>
-            ⏱️ {workout.duration_minutes} min
-          </p>
-        )}
-      </div>
-
-      <div style={{ paddingLeft: '3.25rem', marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <CheerButton workoutId={workout.id} onCheer={onCheer} />
-        {workout.cheer_count > 0 && (
-          <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-            {workout.cheer_count}
-          </span>
-        )}
-        {workout.cheers?.length > 0 && (
-          <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '0.5rem' }}>
-            {workout.cheers.slice(0, 5).map((cheer, i) => (
-              <div
-                key={cheer.id}
-                style={{
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '50%',
-                  overflow: 'hidden',
-                  border: '2px solid var(--card-bg)',
-                  marginLeft: i > 0 ? '-8px' : 0,
-                  background: cheer.image ? `url(${cheer.image}) center/cover` : 'var(--primary)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: cheer.image ? '0' : '0.75rem',
-                }}
-              >
-                {!cheer.image && (cheer.message || '👏')}
-              </div>
-            ))}
-            {workout.cheer_count > 5 && (
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.25rem' }}>
-                +{workout.cheer_count - 5}
-              </span>
-            )}
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span style={{ fontWeight: '600' }}>{workout.username}</span>
+              <span className="timestamp">{formatDate(workout.completed_at || workout.created_at)}</span>
+              <span className="workout-type">{workout.type}</span>
+              {workout.duration_minutes && (
+                <span style={{ color: 'var(--primary)', fontWeight: '600', fontSize: '0.875rem' }}>
+                  {workout.duration_minutes}m
+                </span>
+              )}
+            </div>
           </div>
-        )}
+          <h3 style={{ marginTop: '0.5rem' }}>{workout.title}</h3>
+	  <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '0.5rem', justifyContent: 'space-between'}}>
+	    <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem', fontSize: '0.875rem' }}>
+	      {workout?.description}
+	    </p>
+            <div style={{ display: 'flex', alignSelf: 'end', alignItems: 'center', gap: '0.5rem', background: 'var(--surface-light)', padding: '0.25rem 0.5rem', borderRadius: '1rem', flexShrink: 0 }}>
+              <CheerButton workoutId={workout.id} onCheer={onCheer} />
+              {workout.cheer_count > 0 && (
+                <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                  {workout.cheer_count}
+                </span>
+              )}
+              {workout.cheers?.length > 0 && (
+                <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '0.5rem' }}>
+                  {workout.cheers.slice(0, 5).map((cheer, i) => (
+                    <div
+                      key={cheer.id}
+                      style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        border: '2px solid var(--surface-light)',
+                        marginLeft: i > 0 ? '-8px' : 0,
+                        background: cheer.image ? `url(${cheer.image}) center/cover` : 'var(--primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: cheer.image ? '0' : '0.75rem',
+                      }}
+                    >
+                      {!cheer.image && (cheer.message || '👏')}
+                    </div>
+                  ))}
+                  {workout.cheer_count > 5 && (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.25rem' }}>
+                      +{workout.cheer_count - 5}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+	    
+	  </div>
+        </div>
       </div>
     </div>
   );
