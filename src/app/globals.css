@@ -12,6 +12,7 @@
   --error: #ef4444;
   --error-light: #fef2f2;
   --border: #2a2a4a;
+  --card-bg: #1a1a2e;
 }
 
 @keyframes slideUp {

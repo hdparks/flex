@@ -68,7 +68,7 @@ function ProfileDropdown({ user }) {
             background: 'var(--card-bg)',
             border: '1px solid var(--border)',
             borderRadius: '0.5rem',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
             minWidth: '150px',
             zIndex: 50,
             overflow: 'hidden',
