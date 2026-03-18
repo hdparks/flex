@@ -202,23 +202,6 @@ export default function Workouts() {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-        <button
-          className={`btn ${filter === 'my' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ flex: 1 }}
-          onClick={() => handleFilterChange('my')}
-        >
-          My Workouts
-        </button>
-        <button
-          className={`btn ${filter === 'team' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ flex: 1 }}
-          onClick={() => handleFilterChange('team')}
-        >
-          Team
-        </button>
-      </div>
-
       <div className="grid" style={{ marginBottom: '1.5rem' }}>
         <div className="card stat">
           <div className="stat-value">{workouts.length}</div>
