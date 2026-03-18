@@ -172,6 +172,11 @@ export default function Workouts() {
     loadWorkouts(newFilter);
   };
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadWorkouts(filter);
+  }, [filter]);
+
   const handleUpdate = async (id, data) => {
     const updated = await api.workouts.update(id, data);
     setWorkouts(prev => prev.map(w => w.id === id ? updated : w));

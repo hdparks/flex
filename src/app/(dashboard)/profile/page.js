@@ -1,12 +1,10 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import { api } from '../../../lib/api';
 import { useSession } from 'next-auth/react';
 
 export default function ProfilePage() {
   const { data: session, update: updateSession } = useSession();
-  const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

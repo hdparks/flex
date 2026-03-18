@@ -62,6 +62,15 @@ function CheerButton({ workoutId, onCheer }) {
     setCapturedImage(null);
   };
 
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+    };
+  }, []);
+
   return (
     <div style={{ position: 'relative' }}>
       <button
@@ -148,7 +157,6 @@ function CheerButton({ workoutId, onCheer }) {
 }
 
 function WorkoutCard({ workout, onCheer, currentUserId }) {
-  const hasUserCheered = workout.cheers?.some(c => c.from_user_id === currentUserId);
 
   return (
     <div className="card">

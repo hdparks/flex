@@ -30,9 +30,23 @@ export async function PUT(request) {
   const { username, avatar_url } = await request.json();
 
   if (username !== undefined) {
+    const trimmedUsername = username.trim();
+    
+    if (!trimmedUsername) {
+      return NextResponse.json({ error: 'Invalid username' }, { status: 400 });
+    }
+
+    if (trimmedUsername.length < 3 || trimmedUsername.length > 30) {
+      return NextResponse.json({ error: 'Invalid username' }, { status: 400 });
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(trimmedUsername)) {
+      return NextResponse.json({ error: 'Invalid username' }, { status: 400 });
+    }
+
     const existing = await db.prepare(
       'SELECT id FROM users WHERE username = ? AND id != ?'
-    ).get(username, session.user.id);
+    ).get(trimmedUsername, session.user.id);
 
     if (existing) {
       return NextResponse.json({ error: 'Username already taken' }, { status: 400 });
@@ -44,7 +58,7 @@ export async function PUT(request) {
 
   if (username !== undefined) {
     updates.push('username = ?');
-    args.push(username);
+    args.push(username.trim());
   }
 
   if (avatar_url !== undefined) {
