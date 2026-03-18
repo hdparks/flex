@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { api } from '../../../lib/api';
 import { useSession } from 'next-auth/react';
+import { ImagePlus, Smile, CirclePlus } from 'lucide-react';
 
 const EMOJIS = ['🔥', '💪', '👏', '❤️', '🎉', '⭐', '🚀', '💯'];
 
@@ -12,6 +13,18 @@ function CheerButton({ workoutId, onCheer }) {
   const [videoReady, setVideoReady] = useState(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const popoverRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (event) => {
+      if (popoverRef.current && !popoverRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
 
   const handleEmojiClick = async (emoji) => {
     await onCheer(workoutId, emoji, null);
@@ -81,12 +94,16 @@ function CheerButton({ workoutId, onCheer }) {
       <button
         onClick={() => setOpen(!open)}
         className="btn btn-ghost"
-        style={{ padding: '0.25rem 0.5rem', fontSize: '1.25rem' }}
+        style={{ padding: '0.25rem 0.5rem', position: 'relative' }}
       >
-        👍
+        <Smile size={20} />
+	<svg width={12} height={12} style={{ position: 'absolute', top: 3, right: 3}}>
+	  <circle cx={6} cy={6} r={6} fill='var(--surface)' />
+        </svg>
+        <CirclePlus strokeWidth={3} size={10} style={{ position: 'absolute', top: 3, right: 3 }} />
       </button>
       {open && (
-        <div style={{
+        <div ref={popoverRef} style={{
           position: 'absolute',
           bottom: '100%',
           left: '50%',
@@ -118,25 +135,26 @@ function CheerButton({ workoutId, onCheer }) {
                     {emoji}
                   </button>
                 ))}
+		  <div style={{ width: '2px', background: 'var(--border)', margin: '0 0.25rem' }}></div>
+		  <button 
+		    onClick={startCamera}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      fontSize: '1rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '0.5rem',
+                      color: 'var(--bg)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                    }}
+		  >
+                    <ImagePlus size={20} />
+		  </button>
               </div>
-              <button
-                onClick={startCamera}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  background: 'var(--primary)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '0.25rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                }}
-              >
-                📷 Send Photo
-              </button>
             </>
           ) : (
             <div style={{ width: '200px' }}>
@@ -222,11 +240,11 @@ function WorkoutCard({ workout, onCheer, currentUserId }) {
                         overflow: 'hidden',
                         border: '2px solid var(--surface-light)',
                         marginLeft: i > 0 ? '-8px' : 0,
-                        background: cheer.image ? `url(${cheer.image}) center/cover` : 'var(--primary)',
+                        background: cheer.image ? `url(${cheer.image}) center/cover` : 'transparent',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: cheer.image ? '0' : '0.75rem',
+                        fontSize: cheer.image ? '0' : '1.05rem',
                       }}
                     >
                       {!cheer.image && (cheer.message || '👏')}
