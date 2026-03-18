@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { v4 as uuid } from 'uuid';
 import db from '@/lib/db';
 import { auth } from '@/lib/auth-config';
+import { uploadImage } from '@/lib/upload';
 
 async function canAccessWorkout(sessionUserId, workoutId) {
   const workout = await db.prepare('SELECT user_id FROM workouts WHERE id = ?').get(workoutId);
@@ -29,7 +30,7 @@ export async function POST(request) {
   }
 
   try {
-    const { workout_id, message } = await request.json();
+    const { workout_id, message, image } = await request.json();
     
     if (!workout_id) {
       return NextResponse.json({ error: 'Workout ID required' }, { status: 400 });
@@ -45,12 +46,21 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 
+    let imageUrl = null;
+    if (image) {
+      try {
+        imageUrl = await uploadImage(image);
+      } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+      }
+    }
+
     const id = uuid();
     
     await db.prepare(`
-      INSERT INTO cheers (id, from_user_id, workout_id, message)
-      VALUES (?, ?, ?, ?)
-    `).run(id, session.user.id, workout_id, message || null);
+      INSERT INTO cheers (id, from_user_id, workout_id, message, image)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(id, session.user.id, workout_id, message || null, imageUrl);
 
     const cheer = await db.prepare(`
       SELECT c.*, u.username, u.avatar_url

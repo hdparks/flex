@@ -5,7 +5,7 @@ import { useToast } from '../../../components/ToastProvider';
 import Link from 'next/link';
 import { WORKOUT_TYPES } from '../../../lib/constants';
 
-function WorkoutCard({ workout, onUpdate, onDelete, toast }) {
+function WorkoutCard({ workout, onUpdate, onDelete, toast, canEdit = true }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     type: workout.type,
@@ -115,20 +115,22 @@ function WorkoutCard({ workout, onUpdate, onDelete, toast }) {
             </p>
           )}
         </div>
-        <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '0.5rem' }}>
-          <button className="btn-icon" onClick={() => setEditing(true)} title="Edit">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-            </svg>
-          </button>
-          <button className="btn-icon btn-danger" onClick={handleDelete} title="Delete">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-            </svg>
-          </button>
-        </div>
+        {canEdit && (
+          <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '0.5rem' }}>
+            <button className="btn-icon" onClick={() => setEditing(true)} title="Edit">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
+            <button className="btn-icon btn-danger" onClick={handleDelete} title="Delete">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem' }}>
         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -149,16 +151,32 @@ export default function Workouts() {
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [filter, setFilter] = useState('my');
 
-  useEffect(() => {
-    api.workouts.my()
-      .then(setWorkouts)
+  const loadWorkouts = (filterType) => {
+    setLoading(true);
+    setError(null);
+    const fetchFn = filterType === 'my' ? api.workouts.my() : api.workouts.list();
+    fetchFn
+      .then((data) => {
+        setWorkouts(data);
+        setLoading(false);
+      })
       .catch((err) => {
         setError(err);
         setWorkouts([]);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+        setLoading(false);
+      });
+  };
+
+  const handleFilterChange = (newFilter) => {
+    setFilter(newFilter);
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadWorkouts(filter);
+  }, [filter]);
 
   const handleUpdate = async (id, data) => {
     const updated = await api.workouts.update(id, data);
@@ -202,7 +220,7 @@ export default function Workouts() {
       </div>
 
       <h2 style={{ marginBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-        Recent Workouts
+        {filter === 'my' ? 'My' : 'Team'} Recent Workouts
       </h2>
 
       {workouts.length === 0 ? (
@@ -215,6 +233,7 @@ export default function Workouts() {
             onUpdate={handleUpdate}
             onDelete={handleDelete}
             toast={toast}
+            canEdit={filter === 'my'}
           />
         ))
       )}

@@ -15,10 +15,12 @@
     "@libsql/client": "^0.17.0",
     "bcryptjs": "^3.0.3",
     "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^0.577.0",
     "next": "^16.1.7",
     "next-auth": "^5.0.0-beta.30",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "uploadthing": "^7.7.4",
     "uuid": "^13.0.0",
     "web-push": "^3.6.7"
   },

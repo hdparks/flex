@@ -60,7 +60,7 @@ export const api = {
     delete: (id) => request(`/workouts/${id}`, { method: 'DELETE' }),
   },
   cheers: {
-    create: (workoutId, message) => request('/cheers', { method: 'POST', body: JSON.stringify({ workout_id: workoutId, message }) }),
+    create: (workoutId, message, image) => request('/cheers', { method: 'POST', body: JSON.stringify({ workout_id: workoutId, message, image }) }),
   },
   team: {
     get: () => request('/team'),
@@ -75,6 +75,10 @@ export const api = {
     getPublicKey: () => request('/push'),
     subscribe: (subscription) => request('/push', { method: 'POST', body: JSON.stringify({ subscription }) }),
     unsubscribe: (endpoint) => request('/push', { method: 'POST', body: JSON.stringify({ endpoint }) }),
+  },
+  profile: {
+    get: () => request('/profile'),
+    update: (data) => request('/profile', { method: 'PUT', body: JSON.stringify(data) }),
   },
   getToken,
   setToken,

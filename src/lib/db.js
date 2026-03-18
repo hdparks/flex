@@ -76,12 +76,14 @@ async function getClient() {
         endpoint TEXT NOT NULL,
         keys TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id)
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        UNIQUE(user_id, endpoint)
       )`,
       `CREATE INDEX IF NOT EXISTS idx_workouts_user ON workouts(user_id)`,
       `CREATE INDEX IF NOT EXISTS idx_workouts_completed ON workouts(completed_at)`,
       `CREATE INDEX IF NOT EXISTS idx_cheers_workout ON cheers(workout_id)`,
       `CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id)`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_push_user_endpoint ON push_subscriptions(user_id, endpoint)`,
     ];
 
     for (const stmt of schema) {
