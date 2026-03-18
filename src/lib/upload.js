@@ -1,4 +1,4 @@
-import { UTApi } from "uploadthing/server";
+import { UTApi, UTFile } from "uploadthing/server";
 
 const MAX_IMAGE_SIZE = 500 * 1024;
 
@@ -19,15 +19,18 @@ export async function uploadImage(base64Data) {
     throw new Error('Image too large (max 500KB)');
   }
 
-  const file = new File([imageBuffer], `cheer-${Date.now()}.${mimeType}`, {
+  const file = new UTFile([imageBuffer], `cheer-${Date.now()}.${mimeType}`, {
     type: `image/${mimeType}`,
   });
 
   const response = await utapi.uploadFiles(file);
+  
+  const result = Array.isArray(response) ? response[0] : response;
 
-  if (response.error) {
-    throw new Error(response.error.message);
+  if (!result || result.error) {
+    const errMsg = result?.error?.message || 'Upload failed';
+    throw new Error(errMsg);
   }
 
-  return response.data?.url || null;
+  return result.data?.url || null;
 }

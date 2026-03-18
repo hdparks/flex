@@ -9,6 +9,7 @@ function CheerButton({ workoutId, onCheer }) {
   const [open, setOpen] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
+  const [videoReady, setVideoReady] = useState(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
@@ -19,12 +20,15 @@ function CheerButton({ workoutId, onCheer }) {
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
       setShowCamera(true);
+      setVideoReady(false);
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      }, 100);
     } catch (err) {
       console.error('Camera error:', err);
       alert('Could not access camera');
@@ -32,7 +36,7 @@ function CheerButton({ workoutId, onCheer }) {
   };
 
   const capturePhoto = () => {
-    if (videoRef.current) {
+    if (videoRef.current && videoRef.current.readyState >= 2) {
       const canvas = document.createElement('canvas');
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
@@ -60,6 +64,7 @@ function CheerButton({ workoutId, onCheer }) {
     }
     setShowCamera(false);
     setCapturedImage(null);
+    setVideoReady(false);
   };
 
   useEffect(() => {
@@ -135,14 +140,21 @@ function CheerButton({ workoutId, onCheer }) {
             </>
           ) : (
             <div style={{ width: '200px' }}>
-              <video ref={videoRef} autoPlay playsInline style={{ width: '100%', borderRadius: '0.5rem', display: capturedImage ? 'none' : 'block' }} />
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                muted
+                onLoadedMetadata={() => setVideoReady(true)}
+                style={{ width: '100%', borderRadius: '0.5rem', display: capturedImage ? 'none' : 'block' }} 
+              />
               {capturedImage && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={capturedImage} alt="Captured" style={{ width: '100%', borderRadius: '0.5rem' }} />
               )}
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                 {!capturedImage ? (
-                  <button onClick={capturePhoto} className="btn btn-primary" style={{ flex: 1 }}>Capture</button>
+                  <button onClick={capturePhoto} className="btn btn-primary" style={{ flex: 1 }} disabled={!videoReady}>Capture</button>
                 ) : (
                   <button onClick={sendPhoto} className="btn btn-primary" style={{ flex: 1 }}>Send</button>
                 )}
