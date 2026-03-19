@@ -18,6 +18,7 @@ export const patchNotes: Release[] = [
     changes: [
       { type: 'new', text: 'Added Patch Notes. I know how some of you sick freaks loooooooove your patch notes. This one\'s for you.' },
       { type: 'new', text: 'Added "Report a Bug" feature. I expect this one is going to get a lot of use. We\'ve already found like 12 bugs so far. I\'ll try to credit whoever reports the bug in the patch notes, and I\'ll add extra points to your profile.' },
+      { type: 'new', text: 'Added "Feature Request" severity option to bug reports. It doens\'t have to be a bug; if you guys have ideas for making this experience better, send those as well!'},
     ],
   },
 ];

@@ -118,6 +118,7 @@ export function BugReportModal({ isOpen, onClose }) {
               <option value="medium">Medium - Some features affected</option>
               <option value="high">High - Major features broken</option>
               <option value="critical">Critical - App unusable</option>
+              <option value="feature-request">Feature Request - Not a bug, but something new</option>
             </select>
           </div>
 

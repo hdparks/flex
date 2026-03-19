@@ -195,3 +195,9 @@ await db.prepare(`SELECT * FROM users WHERE id = '${id}'`);
 - `.tsx` - React components with JSX (preferred)
 - `.js` - Only for simpler client-side utilities or when strictly necessary
 - `.jsx` - Only for simpler React components when strictly necessary
+
+### Patch Notes
+After completing work on a feature or bug fix, prompt the user to add an entry to `src/patchNotes.ts` describing the change. The patch notes file uses a specific format with `{ type: 'new' | 'fix' | 'update' | 'removal', text: '...' }` structure. When prompting the user, suggest they include:
+- Brief description of what changed
+- The type (new, fix, update, or removal)
+- Optional: credit to the user who reported/reported the issue (adds extra points to their profile)

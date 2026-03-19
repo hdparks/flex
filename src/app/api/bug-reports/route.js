@@ -19,7 +19,7 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Description must be 2000 characters or less' }, { status: 400 });
   }
 
-  const validSeverities = ['low', 'medium', 'high', 'critical'];
+  const validSeverities = ['low', 'medium', 'high', 'critical', 'feature-request'];
   if (!validSeverities.includes(severity)) {
     return NextResponse.json({ error: 'Invalid severity level' }, { status: 400 });
   }
