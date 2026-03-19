@@ -44,10 +44,15 @@ export function getViewedPatchNotes(): string[] {
 }
 
 export function markPatchNotesViewed(version: string): void {
+  if (typeof version !== 'string' || !version) return;
   if (typeof window === 'undefined') return;
   const viewed = getViewedPatchNotes();
   if (!viewed.includes(version)) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([version, ...viewed]));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([version, ...viewed]));
+    } catch {
+      // localStorage may fail in private mode or when quota exceeded
+    }
   }
 }
 

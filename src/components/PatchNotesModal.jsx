@@ -2,52 +2,91 @@
 import { useEffect, useRef } from 'react';
 import { patchNotes, getLatestVersion, markPatchNotesViewed } from '@/patchNotes';
 
+const typeStyles = {
+  new: { color: '#4ade80', label: 'New' },
+  improvement: { color: '#60a5fa', label: 'Improved' },
+  fix: { color: '#fbbf24', label: 'Fixed' },
+};
+
+const formatDate = (dateStr) => {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+function getVersionAndMarkViewed() {
+  const ver = getLatestVersion();
+  if (typeof ver === 'string' && ver) {
+    markPatchNotesViewed(ver);
+  }
+}
+
 export function PatchNotesModal({ isOpen, onClose }) {
   const modalRef = useRef(null);
+  const previousFocusRef = useRef(null);
+
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement;
+  }, [isOpen]);
 
   useEffect(() => {
     function handleClickOutside(event) {
       if (modalRef.current && !modalRef.current.contains(event.target)) {
-        markPatchNotesViewed(getLatestVersion());
+        getVersionAndMarkViewed();
         onClose();
       }
     }
 
     function handleEscape(event) {
       if (event.key === 'Escape') {
-        markPatchNotesViewed(getLatestVersion());
+        getVersionAndMarkViewed();
         onClose();
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Tab' && modalRef.current) {
+        const focusableElements = modalRef.current.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (event.shiftKey && document.activeElement === firstElement) {
+          event.preventDefault();
+          lastElement?.focus();
+        } else if (!event.shiftKey && document.activeElement === lastElement) {
+          event.preventDefault();
+          firstElement?.focus();
+        }
       }
     }
 
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('keydown', handleEscape);
+      document.addEventListener('keydown', handleKeyDown);
+      const focusable = modalRef.current.querySelector(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      setTimeout(() => focusable?.focus(), 0);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('keydown', handleKeyDown);
+      if (!isOpen && previousFocusRef.current) {
+        previousFocusRef.current.focus();
+      }
     };
   }, [isOpen, onClose]);
 
   const handleClose = () => {
-    markPatchNotesViewed(getLatestVersion());
+    getVersionAndMarkViewed();
     onClose();
   };
 
   if (!isOpen) return null;
-
-  const typeStyles = {
-    new: { color: '#4ade80', label: 'New' },
-    improvement: { color: '#60a5fa', label: 'Improved' },
-    fix: { color: '#fbbf24', label: 'Fixed' },
-  };
-
-  const formatDate = (dateStr) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
 
   return (
     <div style={{

@@ -6,7 +6,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { ToastProvider } from '../../components/ToastProvider';
 import { BugReportModal } from '../../components/BugReportModal';
 import { PatchNotesModal } from '../../components/PatchNotesModal';
-import { hasNewPatchNotes } from '../../patchNotes';
+import { hasNewNotes } from '../../patchNotes';
 
 const navItems = [
   { href: '/dashboard', icon: '🏠', label: 'Feed' },
@@ -14,7 +14,7 @@ const navItems = [
   { href: '/team', icon: '👥', label: 'Team' },
 ];
 
-function ProfileDropdown({ user, onReportBug, onViewPatchNotes, hasNewPatchNotes }) {
+function ProfileDropdown({ user, onReportBug, onViewPatchNotes, hasNewNotes }) {
   const [open, setOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
   const dropdownRef = useRef(null);
@@ -53,7 +53,7 @@ function ProfileDropdown({ user, onReportBug, onViewPatchNotes, hasNewPatchNotes
             {user?.name?.[0]?.toUpperCase() || '?'}
           </div>
         )}
-        {hasNewPatchNotes && (
+        {hasNewNotes && (
           <span style={{
             position: 'absolute',
             top: 0,
@@ -101,7 +101,7 @@ function ProfileDropdown({ user, onReportBug, onViewPatchNotes, hasNewPatchNotes
             style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}
           >
             <span style={{ whiteSpace: 'nowrap' }}>View Patch Notes</span>
-            {hasNewPatchNotes && (
+            {hasNewNotes && (
               <span style={{
                 width: '8px',
                 height: '8px',
@@ -140,7 +140,7 @@ export default function DashboardLayout({ children }) {
   const { data: session, status } = useSession();
   const [showBugReport, setShowBugReport] = useState(false);
   const [showPatchNotes, setShowPatchNotes] = useState(false);
-  const [hasNewPatchNotesState, setHasNewPatchNotesState] = useState(() => hasNewPatchNotes());
+  const [hasNewNotesState, setHasNewPatchNotesState] = useState(() => hasNewNotes());
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -170,7 +170,7 @@ export default function DashboardLayout({ children }) {
             <h1>Hey, {username}!</h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Let&apos;s get moving</p>
           </div>
-          <ProfileDropdown user={session?.user} onReportBug={() => setShowBugReport(true)} onViewPatchNotes={() => setShowPatchNotes(true)} hasNewPatchNotes={hasNewPatchNotesState} />
+          <ProfileDropdown user={session?.user} onReportBug={() => setShowBugReport(true)} onViewPatchNotes={() => setShowPatchNotes(true)} hasNewNotes={hasNewNotesState} />
         </header>
         {children}
         <nav className="nav">
