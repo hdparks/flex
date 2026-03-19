@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { ToastProvider } from '../../components/ToastProvider';
 import { BugReportModal } from '../../components/BugReportModal';
+import { PatchNotesModal } from '../../components/PatchNotesModal';
+import { hasNewPatchNotes } from '../../patchNotes';
 
 const navItems = [
   { href: '/dashboard', icon: '🏠', label: 'Feed' },
@@ -12,16 +14,10 @@ const navItems = [
   { href: '/team', icon: '👥', label: 'Team' },
 ];
 
-function ProfileDropdown({ user, onReportBug }) {
+function ProfileDropdown({ user, onReportBug, onViewPatchNotes, hasNewPatchNotes }) {
   const [open, setOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
   const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    if (user?.image) {
-      setImgError(false);
-    }
-  }, [user?.image]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -38,7 +34,7 @@ function ProfileDropdown({ user, onReportBug }) {
       <button
         onClick={() => setOpen(!open)}
         className="btn btn-ghost"
-        style={{ padding: '0.25rem', borderRadius: '50%', width: '40px', height: '40px', overflow: 'hidden' }}
+        style={{ padding: '0.25rem', borderRadius: '50%', width: '40px', height: '40px', overflow: 'visible' }}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls="profile-menu"
@@ -46,6 +42,7 @@ function ProfileDropdown({ user, onReportBug }) {
         {user?.image && !imgError ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img 
+            key={user.image}
             src={user.image} 
             alt="Profile" 
             style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} 
@@ -55,6 +52,18 @@ function ProfileDropdown({ user, onReportBug }) {
           <div className="avatar" style={{ width: '100%', height: '100%', fontSize: '1.25rem' }}>
             {user?.name?.[0]?.toUpperCase() || '?'}
           </div>
+        )}
+        {hasNewPatchNotes && (
+          <span style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '12px',
+            height: '12px',
+            backgroundColor: 'var(--primary)',
+            borderRadius: '50%',
+            animation: 'pulse 2s infinite',
+          }} />
         )}
       </button>
       {open && (
@@ -70,7 +79,7 @@ function ProfileDropdown({ user, onReportBug }) {
             border: '1px solid var(--border)',
             borderRadius: '0.5rem',
             boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-            minWidth: '150px',
+            minWidth: '180px',
             zIndex: 50,
             overflow: 'hidden',
           }}>
@@ -82,6 +91,26 @@ function ProfileDropdown({ user, onReportBug }) {
           >
             My Profile
           </Link>
+          <button
+            onClick={() => {
+              setOpen(false);
+              onViewPatchNotes();
+            }}
+            role="menuitem"
+            className="dropdown-item"
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}
+          >
+            <span style={{ whiteSpace: 'nowrap' }}>View Patch Notes</span>
+            {hasNewPatchNotes && (
+              <span style={{
+                width: '8px',
+                height: '8px',
+                backgroundColor: 'var(--primary)',
+                borderRadius: '50%',
+                flexShrink: 0,
+              }} />
+            )}
+          </button>
           <button
             onClick={() => {
               setOpen(false);
@@ -110,6 +139,8 @@ export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const [showBugReport, setShowBugReport] = useState(false);
+  const [showPatchNotes, setShowPatchNotes] = useState(false);
+  const [hasNewPatchNotesState, setHasNewPatchNotesState] = useState(() => hasNewPatchNotes());
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -139,7 +170,7 @@ export default function DashboardLayout({ children }) {
             <h1>Hey, {username}!</h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Let&apos;s get moving</p>
           </div>
-          <ProfileDropdown user={session?.user} onReportBug={() => setShowBugReport(true)} />
+          <ProfileDropdown user={session?.user} onReportBug={() => setShowBugReport(true)} onViewPatchNotes={() => setShowPatchNotes(true)} hasNewPatchNotes={hasNewPatchNotesState} />
         </header>
         {children}
         <nav className="nav">
@@ -151,6 +182,7 @@ export default function DashboardLayout({ children }) {
           ))}
         </nav>
         <BugReportModal isOpen={showBugReport} onClose={() => setShowBugReport(false)} />
+        <PatchNotesModal isOpen={showPatchNotes} onClose={() => { setShowPatchNotes(false); setHasNewPatchNotesState(false); }} />
       </div>
     </ToastProvider>
   );
