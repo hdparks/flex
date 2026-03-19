@@ -1,5 +1,4 @@
 **/node_modules/
 .next/
-backend/data/
-data/
 .env.local
+next-env.d.ts

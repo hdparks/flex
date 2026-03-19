@@ -79,6 +79,15 @@ async function getClient() {
         FOREIGN KEY (user_id) REFERENCES users(id),
         UNIQUE(user_id, endpoint)
       )`,
+      `CREATE TABLE IF NOT EXISTS bug_reports (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        description TEXT NOT NULL,
+        severity TEXT DEFAULT 'medium',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_bug_reports_user ON bug_reports(user_id)`,
       `CREATE INDEX IF NOT EXISTS idx_workouts_user ON workouts(user_id)`,
       `CREATE INDEX IF NOT EXISTS idx_workouts_completed ON workouts(completed_at)`,
       `CREATE INDEX IF NOT EXISTS idx_cheers_workout ON cheers(workout_id)`,
