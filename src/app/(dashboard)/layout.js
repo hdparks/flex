@@ -6,7 +6,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { ToastProvider } from '../../components/ToastProvider';
 import { BugReportModal } from '../../components/BugReportModal';
 import { PatchNotesModal } from '../../components/PatchNotesModal';
-import { hasNewNotes } from '../../patchNotes';
+import { hasNewPatchNotes } from '../../patchNotes';
 
 const navItems = [
   { href: '/dashboard', icon: '🏠', label: 'Feed' },
@@ -140,7 +140,7 @@ export default function DashboardLayout({ children }) {
   const { data: session, status } = useSession();
   const [showBugReport, setShowBugReport] = useState(false);
   const [showPatchNotes, setShowPatchNotes] = useState(false);
-  const [hasNewNotesState, setHasNewPatchNotesState] = useState(() => hasNewNotes());
+  const [hasNewNotesState, setHasNewPatchNotesState] = useState(() => hasNewPatchNotes());
 
   useEffect(() => {
     if (status === 'unauthenticated') {

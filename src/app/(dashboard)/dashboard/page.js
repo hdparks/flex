@@ -17,6 +17,23 @@ function CheerButton({ workoutId, onCheer, disabled }) {
   const popoverRef = useRef(null);
   const timeoutRef = useRef(null);
 
+  const stopCamera = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setShowCamera(false);
+    setCapturedImage(null);
+    setVideoReady(false);
+  };
+
   useEffect(() => {
     if (!open) return;
     const handleClickOutside = (event) => {
@@ -70,23 +87,6 @@ function CheerButton({ workoutId, onCheer, disabled }) {
       setOpen(false);
       stopCamera();
     }
-  };
-
-  const stopCamera = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    setShowCamera(false);
-    setCapturedImage(null);
-    setVideoReady(false);
   };
 
   useEffect(() => {
