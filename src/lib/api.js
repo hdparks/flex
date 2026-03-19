@@ -80,6 +80,9 @@ export const api = {
     get: () => request('/profile'),
     update: (data) => request('/profile', { method: 'PUT', body: JSON.stringify(data) }),
   },
+  bugReports: {
+    submit: (data) => request('/bug-reports', { method: 'POST', body: JSON.stringify(data) }),
+  },
   getToken,
   setToken,
   clearToken,

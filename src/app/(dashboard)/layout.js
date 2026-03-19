@@ -4,6 +4,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { ToastProvider } from '../../components/ToastProvider';
+import { BugReportModal } from '../../components/BugReportModal';
 
 const navItems = [
   { href: '/dashboard', icon: '🏠', label: 'Feed' },
@@ -11,7 +12,7 @@ const navItems = [
   { href: '/team', icon: '👥', label: 'Team' },
 ];
 
-function ProfileDropdown({ user }) {
+function ProfileDropdown({ user, onReportBug }) {
   const [open, setOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
   const dropdownRef = useRef(null);
@@ -77,30 +78,24 @@ function ProfileDropdown({ user }) {
             href="/profile"
             onClick={() => setOpen(false)}
             role="menuitem"
-            style={{
-              display: 'block',
-              padding: '0.75rem 1rem',
-              color: 'var(--text)',
-              textDecoration: 'none',
-              borderBottom: '1px solid var(--border)',
-            }}
+            className="dropdown-item"
           >
             My Profile
           </Link>
           <button
+            onClick={() => {
+              setOpen(false);
+              onReportBug();
+            }}
+            role="menuitem"
+            className="dropdown-item"
+          >
+            Report a Bug
+          </button>
+          <button
             onClick={() => signOut({ callbackUrl: '/' })}
             role="menuitem"
-            style={{
-              display: 'block',
-              width: '100%',
-              padding: '0.75rem 1rem',
-              textAlign: 'left',
-              background: 'none',
-              border: 'none',
-              color: 'var(--text)',
-              cursor: 'pointer',
-              fontSize: '1rem',
-            }}
+            className="dropdown-item"
           >
             Logout
           </button>
@@ -114,6 +109,7 @@ export default function DashboardLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const { data: session, status } = useSession();
+  const [showBugReport, setShowBugReport] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -143,7 +139,7 @@ export default function DashboardLayout({ children }) {
             <h1>Hey, {username}!</h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Let&apos;s get moving</p>
           </div>
-          <ProfileDropdown user={session?.user} />
+          <ProfileDropdown user={session?.user} onReportBug={() => setShowBugReport(true)} />
         </header>
         {children}
         <nav className="nav">
@@ -154,6 +150,7 @@ export default function DashboardLayout({ children }) {
             </Link>
           ))}
         </nav>
+        <BugReportModal isOpen={showBugReport} onClose={() => setShowBugReport(false)} />
       </div>
     </ToastProvider>
   );
