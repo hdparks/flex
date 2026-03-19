@@ -10,6 +10,11 @@ export function BugReportModal({ isOpen, onClose }) {
   const { toast } = useToast();
   const modalRef = useRef(null);
   const textareaRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (isOpen && textareaRef.current) {
@@ -17,19 +22,19 @@ export function BugReportModal({ isOpen, onClose }) {
     }
   }, [isOpen]);
 
+  const handleClickOutside = (event) => {
+    if (modalRef.current && !modalRef.current.contains(event.target)) {
+      onCloseRef.current();
+    }
+  };
+
+  const handleEscape = (event) => {
+    if (event.key === 'Escape') {
+      onCloseRef.current();
+    }
+  };
+
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (modalRef.current && !modalRef.current.contains(event.target)) {
-        onClose();
-      }
-    }
-
-    function handleEscape(event) {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    }
-
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('keydown', handleEscape);
@@ -39,7 +44,7 @@ export function BugReportModal({ isOpen, onClose }) {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -67,16 +72,21 @@ export function BugReportModal({ isOpen, onClose }) {
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 100,
-      padding: '1rem',
-    }}>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="bug-report-heading"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 100,
+        padding: '1rem',
+      }}
+    >
       <div ref={modalRef} className="card" style={{
         width: '100%',
         maxWidth: '450px',
@@ -91,7 +101,7 @@ export function BugReportModal({ isOpen, onClose }) {
           paddingBottom: '0.75rem',
           borderBottom: '1px solid var(--border)',
         }}>
-          <h2 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>Report a Bug</h2>
+          <h2 id="bug-report-heading" style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>Report a Bug</h2>
           <button
             onClick={onClose}
             className="btn btn-ghost btn-icon"
