@@ -20,7 +20,7 @@ export async function GET(request) {
           (SELECT COUNT(*) FROM cheers WHERE workout_id = w.id) as cheer_count
         FROM workouts w
         WHERE w.user_id = ?
-        ORDER BY w.completed_at DESC, w.created_at DESC
+        ORDER BY COALESCE(w.completed_at, w.created_at) DESC
       `).all(userId);
 
       return NextResponse.json(workouts);

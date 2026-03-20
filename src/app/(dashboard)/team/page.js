@@ -215,7 +215,16 @@ export default function Team() {
             ) : (
               team.members.map((member) => (
                 <div key={member.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                  <div className="avatar">{member.username?.[0]?.toUpperCase()}</div>
+                  {member.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={member.avatar_url}
+                      alt={member.username}
+                      style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <div className="avatar">{member.username?.[0]?.toUpperCase()}</div>
+                  )}
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: '600' }}>{member.username}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>

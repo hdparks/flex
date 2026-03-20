@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { api } from '../../../lib/api';
+import { toLocalDatetimeInput, fromLocalDatetimeInput } from '../../../lib/dateUtils';
 import { useToast } from '../../../components/ToastProvider';
 import Link from 'next/link';
 import { WORKOUT_TYPES } from '../../../lib/constants';
@@ -12,7 +13,7 @@ function WorkoutCard({ workout, onUpdate, onDelete, toast, canEdit = true }) {
     title: workout.title,
     description: workout.description || '',
     duration_minutes: workout.duration_minutes || '',
-    completed_at: (workout.completed_at || workout.created_at).split('T')[0]
+    completed_at: toLocalDatetimeInput(workout.completed_at || workout.created_at)
   });
   const [saving, setSaving] = useState(false);
 
@@ -21,6 +22,7 @@ function WorkoutCard({ workout, onUpdate, onDelete, toast, canEdit = true }) {
     try {
       await onUpdate(workout.id, {
         ...form,
+        completed_at: fromLocalDatetimeInput(form.completed_at),
         duration_minutes: form.duration_minutes ? parseInt(form.duration_minutes) : null,
       });
       setEditing(false);
@@ -83,9 +85,9 @@ function WorkoutCard({ workout, onUpdate, onDelete, toast, canEdit = true }) {
           />
         </div>
         <div className="form-group">
-          <label className="label">Date</label>
+          <label className="label">Date & Time</label>
           <input
-            type="date"
+            type="datetime-local"
             className="input"
             value={form.completed_at}
             onChange={(e) => setForm({ ...form, completed_at: e.target.value })}

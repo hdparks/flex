@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { auth } from '@/lib/auth-config';
+import { uploadImage } from '@/lib/upload';
 
 export async function GET(request) {
   const session = await auth();
@@ -62,8 +63,18 @@ export async function PUT(request) {
   }
 
   if (avatar_url !== undefined) {
+    let storedUrl = avatar_url;
+    
+    if (avatar_url && avatar_url.startsWith('data:')) {
+      try {
+        storedUrl = await uploadImage(avatar_url);
+      } catch (err) {
+        return NextResponse.json({ error: err.message || 'Failed to upload image' }, { status: 400 });
+      }
+    }
+    
     updates.push('avatar_url = ?');
-    args.push(avatar_url);
+    args.push(storedUrl || null);
   }
 
   if (updates.length === 0) {

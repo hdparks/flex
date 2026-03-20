@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
 import { api } from '../../../lib/api';
+import { formatRelativeTime } from '../../../lib/dateUtils';
 import { useSession } from 'next-auth/react';
 import { ImagePlus, Smile, CirclePlus } from 'lucide-react';
 import { useToast } from '../../../components/ToastProvider';
@@ -203,12 +204,6 @@ function CheerButton({ workoutId, onCheer, disabled }) {
 function WorkoutCard({ workout, onCheer, currentUserId }) {
   const isOwnWorkout = currentUserId && workout.userId === currentUserId;
 
-  const handleCheer = () => {
-    if (!isOwnWorkout) {
-      onCheer(workout.id);
-    }
-  };
-
   return (
     <div className="card">
       <div style={{ display: 'flex', alignItems: 'flex-start' }}>
@@ -233,7 +228,7 @@ function WorkoutCard({ workout, onCheer, currentUserId }) {
                   you
                 </span>
               )}
-              <span className="timestamp">{formatDate(workout.completed_at || workout.created_at)}</span>
+              <span className="timestamp">{formatRelativeTime(workout.completed_at || workout.created_at)}</span>
               <span className="workout-type">{workout.type}</span>
               {workout.duration_minutes && (
                 <span style={{ color: 'var(--primary)', fontWeight: '600', fontSize: '0.875rem' }}>
@@ -248,7 +243,7 @@ function WorkoutCard({ workout, onCheer, currentUserId }) {
 	      {workout?.description}
 	    </p>
             <div style={{ display: 'flex', alignSelf: 'end', alignItems: 'center', gap: '0.5rem', background: 'var(--surface-light)', padding: '0.25rem 0.5rem', borderRadius: '1rem', flexShrink: 0 }}>
-              <CheerButton workoutId={workout.id} onCheer={handleCheer} disabled={isOwnWorkout} />
+              <CheerButton workoutId={workout.id} onCheer={onCheer} disabled={isOwnWorkout} />
               {workout.cheer_count > 0 && (
                 <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
                   {workout.cheer_count}
@@ -368,19 +363,4 @@ export default function Dashboard() {
       ))}
     </div>
   );
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return 'Unknown date';
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return 'Unknown date';
-  const now = new Date();
-  const diff = now - date;
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const days = Math.floor(hours / 24);
-  
-  if (hours < 1) return 'Just now';
-  if (hours < 24) return `${hours}h ago`;
-  if (days < 7) return `${days}d ago`;
-  return date.toLocaleDateString();
 }

@@ -13,6 +13,21 @@ export interface Release {
 
 export const patchNotes: Release[] = [
   {
+    version: '0.0.3',
+    date: '2026-03-19',
+    changes: [
+      { type: 'fix', text: 'Fixed workout timestamps showing incorrectly (e.g., "21h ago" for brand new posts). Thanks to Brooklyn and Bryce for catching this one!' },
+      { type: 'fix', text: 'Fixed feed posts not appearing in chronological order. Brooklyn was right - that was janky.' },
+      { type: 'improvement', text: 'Workout date picker is now a datetime picker so you can log the exact time you finished your workout.' },
+      { type: 'fix', text: 'Fixed emoji reactions not being saved - they were getting dropped by a bug in the code. Nice find, Brooklyn!' },
+      { type: 'fix', text: 'Fixed profile picture uploads. Images are now properly uploaded to the cloud instead of stored as raw data. Good Eye, Brooklyn!' },
+      { type: 'fix', text: 'Fixed username preference. The greeting up top will use your preferred username instead of your full legal from your Google account.' },
+      { type: 'fix', text: 'Fixed team page not showing profile pictures for members.' },
+      { type: 'fix', text: 'Fixed patch note dates showing a day off due to timezone issues.' },
+      { type: 'fix', text: 'Fixed the bottom navigation bar on Chrome. (I hope. Gonna be honest, didn\'t really test that one.) It should now stick to the bottom properly instead of floating around when you scroll down.' },
+    ],
+  },
+  {
     version: '0.0.2',
     date: '2026-03-18',
     changes: [

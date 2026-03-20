@@ -1,6 +1,6 @@
 import { UTApi, UTFile } from "uploadthing/server";
 
-const MAX_IMAGE_SIZE = 500 * 1024;
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 const utapi = new UTApi();
 
@@ -18,7 +18,7 @@ export async function uploadImage(base64Data) {
   const decodedLength = Math.floor((base64Payload.length * 3) / 4) - paddingCount;
 
   if (decodedLength > MAX_IMAGE_SIZE) {
-    throw new Error('Image too large (max 500KB)');
+    throw new Error('Image too large (max 5MB)');
   }
 
   const imageBuffer = Buffer.from(base64Payload, 'base64');

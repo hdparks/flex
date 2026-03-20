@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '../../../../lib/api';
+import { toLocalDatetimeInput, fromLocalDatetimeInput } from '../../../../lib/dateUtils';
 import { useToast } from '../../../../components/ToastProvider';
 
 const WORKOUT_TYPES = ['run', 'strength', 'cardio', 'hiit', 'flexibility', 'sport', 'other'];
@@ -15,7 +16,7 @@ export default function NewWorkout() {
     title: '',
     description: '',
     duration_minutes: '',
-    completed_at: new Date().toISOString().split('T')[0]
+    completed_at: toLocalDatetimeInput(new Date().toISOString())
   });
 
   const handleSubmit = async (e) => {
@@ -25,6 +26,7 @@ export default function NewWorkout() {
     try {
       await api.workouts.create({
         ...form,
+        completed_at: fromLocalDatetimeInput(form.completed_at),
         duration_minutes: form.duration_minutes ? parseInt(form.duration_minutes) : null,
       });
       router.push('/workouts');
@@ -88,9 +90,9 @@ export default function NewWorkout() {
         </div>
 
         <div className="form-group">
-          <label className="label">Date</label>
+          <label className="label">Date & Time</label>
           <input
-            type="date"
+            type="datetime-local"
             className="input"
             value={form.completed_at}
             onChange={(e) => setForm({ ...form, completed_at: e.target.value })}

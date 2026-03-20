@@ -44,6 +44,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       session.user.id = token.userId;
       session.user.isAdmin = token.isAdmin;
+      if (token.userId) {
+        const dbUser = await db.prepare('SELECT username, avatar_url FROM users WHERE id = ?').get(token.userId);
+        if (dbUser) {
+          if (dbUser.username) {
+            session.user.name = dbUser.username;
+          }
+          if (dbUser.avatar_url) {
+            session.user.image = dbUser.avatar_url;
+          }
+        }
+      }
       return session;
     },
   },

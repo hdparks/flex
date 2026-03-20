@@ -164,7 +164,7 @@ export default function DashboardLayout({ children }) {
 
   return (
     <ToastProvider>
-      <div className="container" style={{ paddingBottom: '5rem' }}>
+      <div className="container">
         <header className="header">
           <div>
             <h1>Hey, {username}!</h1>

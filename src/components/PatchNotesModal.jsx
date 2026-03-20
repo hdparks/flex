@@ -1,16 +1,12 @@
 'use client';
 import { useEffect, useRef } from 'react';
 import { patchNotes, getLatestVersion, markPatchNotesViewed } from '@/patchNotes';
+import { formatDateLocal } from '@/lib/dateUtils';
 
 const typeStyles = {
   new: { color: '#4ade80', label: 'New' },
   improvement: { color: '#60a5fa', label: 'Improved' },
   fix: { color: '#fbbf24', label: 'Fixed' },
-};
-
-const formatDate = (dateStr) => {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 function getVersionAndMarkViewed() {
@@ -138,7 +134,7 @@ export function PatchNotesModal({ isOpen, onClose }) {
                 <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--primary)' }}>
                   v{release.version}
                 </h3>
-                <span className="timestamp">{formatDate(release.date)}</span>
+                <span className="timestamp">{formatDateLocal(release.date)}</span>
               </div>
               <ul style={{
                 listStyle: 'none',
@@ -161,9 +157,12 @@ export function PatchNotesModal({ isOpen, onClose }) {
                       fontWeight: 600,
                       fontSize: '0.75rem',
                       background: 'var(--surface-light)',
-                      padding: '0.125rem 0.375rem',
+                      padding: '0.125rem 0.5rem',
                       borderRadius: '4px',
-                      whiteSpace: 'nowrap',
+                      minWidth: '70px',
+                      textAlign: 'center',
+                      flexShrink: 0,
+                      display: 'inline-block',
                     }}>
                       {typeStyles[change.type]?.label}
                     </span>
