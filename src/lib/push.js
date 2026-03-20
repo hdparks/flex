@@ -43,7 +43,7 @@ export async function sendNotification(userId, title, body, url) {
     try {
       await webpush.sendNotification(pushSubscription, notification);
     } catch (err) {
-      console.error('Push notification error:', err.message);
+      console.error('Push notification error:', err.message, { statusCode: err.statusCode, endpoint: sub.endpoint.slice(0, 50) + '...' });
       if (err.statusCode === 410 || err.statusCode === 404) {
         await db.prepare('DELETE FROM push_subscriptions WHERE id = ?').run(sub.id);
       }

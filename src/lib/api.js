@@ -76,6 +76,9 @@ export const api = {
     subscribe: (subscription) => request('/push', { method: 'POST', body: JSON.stringify({ subscription }) }),
     unsubscribe: (endpoint) => request('/push', { method: 'POST', body: JSON.stringify({ endpoint }) }),
   },
+  ping: {
+    send: (userId) => request('/ping', { method: 'POST', body: JSON.stringify({ userId }) }),
+  },
   profile: {
     get: () => request('/profile'),
     update: (data) => request('/profile', { method: 'PUT', body: JSON.stringify(data) }),

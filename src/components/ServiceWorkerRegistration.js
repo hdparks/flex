@@ -36,26 +36,24 @@ export default function ServiceWorkerRegistration() {
 
       try {
         const registration = await navigator.serviceWorker.register('/sw.js');
-        console.log('SW registered');
 
         const existingSub = await registration.pushManager.getSubscription();
         if (existingSub) {
-          await api.push.subscribe(existingSub.toJSON()).then(() => {
-            console.log('Push re-subscribed for current user');
-          }).catch(err => {
-            console.error('Push re-subscribe error:', err);
-          });
+          await api.push.subscribe(existingSub.toJSON());
           return;
         }
+
+        const permission = Notification.permission;
+        if (permission !== 'granted') return;
 
         let publicKey = process.env.NEXT_PUBLIC_VAPID_KEY;
         if (!publicKey) {
           const { publicKey: serverKey } = await api.push.getPublicKey();
           publicKey = serverKey;
         }
+
         const subscription = await subscribeToPush(registration, publicKey);
         await api.push.subscribe(subscription.toJSON());
-        console.log('Push subscribed');
       } catch (err) {
         console.error('SW/Push init error:', err);
       }

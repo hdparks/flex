@@ -2,9 +2,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { api } from '../../../lib/api';
 import { useSession } from 'next-auth/react';
+import { useToast } from '../../../components/ToastProvider';
 
 export default function ProfilePage() {
   const { data: session, update: updateSession } = useSession();
+  const { toast } = useToast();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [profileError, setProfileError] = useState(null);
@@ -85,6 +87,15 @@ export default function ProfilePage() {
       alert(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePingMe = async () => {
+    try {
+      await api.ping.send();
+      toast('Ping sent! Check your notifications.', 'success');
+    } catch (err) {
+      toast(err.message, 'error');
     }
   };
 
@@ -204,6 +215,18 @@ export default function ProfilePage() {
           {saving ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
+
+      {session?.user?.isAdmin && (
+        <div className="card" style={{ marginTop: '2rem', border: '2px dashed var(--border)' }}>
+          <h3 style={{ marginBottom: '0.5rem' }}>Admin Tools</h3>
+          <button
+            className="btn btn-secondary"
+            onClick={handlePingMe}
+          >
+            Ping Me (Test Notifications)
+          </button>
+        </div>
+      )}
     </div>
   );
 }
