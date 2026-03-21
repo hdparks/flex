@@ -1,66 +1,95 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
 
-function urlBase64ToUint8Array(base64String) {
-  let base64 = base64String.replace(/-/g, '+').replace(/_/g, '/');
-  const padding = base64.length % 4;
-  if (padding) {
-    base64 += '='.repeat(4 - padding);
+function urlBase64ToUint8Array(base64) {
+  const base64Data = base64.replace(/[-]/g, '+').replace(/[_]/g, '/');
+  const padding = base64Data.length % 4;
+  const paddedBase64 = padding ? base64Data + '='.repeat(4 - padding) : base64Data;
+  const rawData = window.atob(paddedBase64);
+  const uint8Array = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) {
+    uint8Array[i] = rawData.charCodeAt(i);
   }
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
-
-async function subscribeToPush(registration, publicKey) {
-  const keyArray = urlBase64ToUint8Array(publicKey);
-  const subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: keyArray,
-  });
-  return subscription;
+  return uint8Array;
 }
 
 export default function ServiceWorkerRegistration() {
   const { status } = useSession();
+  const initialized = useRef(false);
 
   useEffect(() => {
-    async function init() {
+    if (status !== 'authenticated' || initialized.current) return;
+    initialized.current = true;
+
+    async function initServiceWorker() {
       if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
-      if (status !== 'authenticated') return;
 
       try {
         const registration = await navigator.serviceWorker.register('/sw.js');
 
-        const existingSub = await registration.pushManager.getSubscription();
-        if (existingSub) {
-          await api.push.subscribe(existingSub.toJSON());
-          return;
-        }
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('New service worker available');
+              }
+            });
+          }
+        });
 
-        const permission = Notification.permission;
-        if (permission !== 'granted') return;
-
-        let publicKey = process.env.NEXT_PUBLIC_VAPID_KEY;
-        if (!publicKey) {
-          const { publicKey: serverKey } = await api.push.getPublicKey();
-          publicKey = serverKey;
-        }
-
-        const subscription = await subscribeToPush(registration, publicKey);
-        await api.push.subscribe(subscription.toJSON());
+        await handlePushSubscription(registration);
       } catch (err) {
-        console.error('SW/Push init error:', err);
+        console.error('Service worker registration failed:', err);
       }
     }
 
-    init();
+    initServiceWorker();
   }, [status]);
 
   return null;
+}
+
+async function handlePushSubscription(registration) {
+  try {
+    const permission = Notification.permission;
+    if (permission !== 'granted') {
+      console.debug('Notification permission not granted');
+      return;
+    }
+
+    const existingSubscription = await registration.pushManager.getSubscription();
+    if (existingSubscription) {
+      await api.push.subscribe(existingSubscription.toJSON());
+      return;
+    }
+
+    const publicKey = await getPublicKey();
+    if (!publicKey) return;
+
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    });
+
+    await api.push.subscribe(subscription.toJSON());
+  } catch (err) {
+    console.error('Push subscription failed:', err);
+  }
+}
+
+async function getPublicKey() {
+  if (process.env.NEXT_PUBLIC_VAPID_KEY) {
+    return process.env.NEXT_PUBLIC_VAPID_KEY;
+  }
+
+  try {
+    const { publicKey } = await api.push.getPublicKey();
+    return publicKey;
+  } catch (err) {
+    console.error('Failed to fetch VAPID public key:', err);
+    return null;
+  }
 }

@@ -1,6 +1,6 @@
-const CACHE_NAME = 'flex-v2';
-const STATIC_CACHE = 'flex-static-v2';
-const DYNAMIC_CACHE = 'flex-dynamic-v2';
+const CACHE_VERSION = 'v1';
+const STATIC_CACHE = `flex-static-${CACHE_VERSION}`;
+const DYNAMIC_CACHE = `flex-dynamic-${CACHE_VERSION}`;
 
 const STATIC_ASSETS = [
   '/',
@@ -11,46 +11,20 @@ const STATIC_ASSETS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    })
+    caches.open(STATIC_CACHE).then((cache) => cache.addAll(STATIC_ASSETS))
   );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((name) => name.startsWith('flex-') && name !== CACHE_NAME && name !== STATIC_CACHE && name !== DYNAMIC_CACHE)
-          .map((name) => caches.delete(name))
-      );
-    })
-  );
-  self.clients.claim();
-});
-
-self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {};
-  const title = data.title || 'Flex';
-  const options = {
-    body: data.body || 'New notification',
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    data: data.url || '/',
-    vibrate: [200, 100, 200]
-  };
-
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-  );
-});
-
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  event.waitUntil(
-    clients.openWindow(event.notification.data || '/')
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => key.startsWith('flex-') && key !== STATIC_CACHE && key !== DYNAMIC_CACHE)
+          .map((key) => caches.delete(key))
+      )
+    ).then(() => self.clients.claim())
   );
 });
 
@@ -59,21 +33,55 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   if (request.method !== 'GET') return;
-
   if (url.origin !== location.origin) return;
 
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(networkFirst(request));
-    return;
-  }
-
-  if (request.destination === 'document' || request.destination === 'script' || request.destination === 'style' || request.destination === 'image') {
+  } else if (isStaticAsset(request)) {
+    event.respondWith(cacheFirst(request));
+  } else {
     event.respondWith(staleWhileRevalidate(request));
-    return;
   }
-
-  event.respondWith(cacheFirst(request));
 });
+
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+
+  const data = event.data.json();
+  const { title, body, url, icon } = data;
+
+  event.waitUntil(
+    self.registration.showNotification(title || 'Flex', {
+      body: body || 'You have a new notification',
+      icon: icon || '/icon-192.png',
+      badge: '/icon-192.png',
+      data: { url: url || '/' },
+      vibrate: [200, 100, 200],
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const url = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url === url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      return clients.openWindow(url);
+    })
+  );
+});
+
+function isStaticAsset(request) {
+  const { destination } = request;
+  return ['image', 'font', 'style', 'script'].includes(destination);
+}
 
 async function cacheFirst(request) {
   const cached = await caches.match(request);
@@ -101,10 +109,10 @@ async function networkFirst(request) {
     return response;
   } catch {
     const cached = await caches.match(request);
-    return cached || new Response(JSON.stringify({ error: 'Offline' }), {
-      status: 503,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return cached || new Response(
+      JSON.stringify({ error: 'Offline' }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 }
 
@@ -112,12 +120,12 @@ async function staleWhileRevalidate(request) {
   const cache = await caches.open(DYNAMIC_CACHE);
   const cached = await cache.match(request);
 
-  const fetchPromise = fetch(request).then((response) => {
-    if (response.ok) {
-      cache.put(request, response.clone());
-    }
-    return response;
-  }).catch(() => cached);
+  const fetchPromise = fetch(request)
+    .then((response) => {
+      if (response.ok) cache.put(request, response.clone());
+      return response;
+    })
+    .catch(() => null);
 
   return cached || fetchPromise;
 }
