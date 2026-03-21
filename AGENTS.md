@@ -172,6 +172,12 @@ await db.prepare(`SELECT * FROM users WHERE id = '${id}'`);
 - Use web-push for push notifications
 - Use `@/lib/push.js` for notification helpers
 
+### Service Worker (public/sw.js)
+- Cache versioning is controlled by `CACHE_VERSION` at the top of the file
+- **When to bump**: After any feature change that modifies static assets (icons, JS/CSS bundles, manifest) or when forcing users off stale cached data
+- Increment `CACHE_VERSION` to trigger the `activate` event, which cleans up old caches and ensures users fetch fresh content
+- Bumping the version will wipe the dynamic cache, so users may briefly lack cached API responses until caches rebuild
+
 ### File Extensions
 - `.ts` - Type-safe utilities, lib files
 - `.tsx` - React components with JSX (preferred)

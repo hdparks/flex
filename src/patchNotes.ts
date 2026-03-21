@@ -13,6 +13,14 @@ export interface Release {
 
 export const patchNotes: Release[] = [
   {
+    version: '0.0.5',
+    date: '2023-03-21',
+    changes: [
+      { type: 'new', text: 'Added push notifications. Enable them on your profile to get notified when teammates cheer your workouts!' },
+      { type: 'fix', text: 'Fixed comment button not working on workout cards.' },
+    ]
+  },
+  {
     version: '0.0.4',
     date: '2026-03-21',
     changes: [

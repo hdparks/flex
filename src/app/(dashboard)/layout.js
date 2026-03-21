@@ -1,11 +1,12 @@
 'use client';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { ToastProvider } from '../../components/ToastProvider';
 import { BugReportModal } from '../../components/BugReportModal';
 import { PatchNotesModal } from '../../components/PatchNotesModal';
+import { PullToRefreshProvider } from '../../components/PullToRefreshProvider';
 import { hasNewPatchNotes } from '../../patchNotes';
 
 const navItems = [
@@ -148,6 +149,10 @@ export default function DashboardLayout({ children }) {
     }
   }, [status, router]);
 
+  const handleRefresh = useCallback(() => {
+    router.refresh();
+  }, [router]);
+
   if (status === 'loading') {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -164,26 +169,28 @@ export default function DashboardLayout({ children }) {
 
   return (
     <ToastProvider>
-      <div className="container">
-        <header className="header">
-          <div>
-            <h1>Hey, {username}!</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Let&apos;s get moving</p>
-          </div>
-          <ProfileDropdown user={session?.user} onReportBug={() => setShowBugReport(true)} onViewPatchNotes={() => setShowPatchNotes(true)} hasNewNotes={hasNewNotesState} />
-        </header>
-        {children}
-        <nav className="nav">
-          {navItems.map((item) => (
-            <Link key={item.href} href={item.href} className={`nav-item ${pathname === item.href ? 'active' : ''}`}>
-              <span className="nav-icon">{item.icon}</span>
-              <span>{item.label}</span>
-            </Link>
-          ))}
-        </nav>
-        <BugReportModal isOpen={showBugReport} onClose={() => setShowBugReport(false)} />
-        <PatchNotesModal isOpen={showPatchNotes} onClose={() => { setShowPatchNotes(false); setHasNewPatchNotesState(false); }} />
-      </div>
+      <PullToRefreshProvider onRefresh={handleRefresh}>
+        <div className="container">
+          <header className="header">
+            <div>
+              <h1>Hey, {username}!</h1>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Let&apos;s get moving</p>
+            </div>
+            <ProfileDropdown user={session?.user} onReportBug={() => setShowBugReport(true)} onViewPatchNotes={() => setShowPatchNotes(true)} hasNewNotes={hasNewNotesState} />
+          </header>
+          {children}
+          <nav className="nav">
+            {navItems.map((item) => (
+              <Link key={item.href} href={item.href} className={`nav-item ${pathname === item.href ? 'active' : ''}`}>
+                <span className="nav-icon">{item.icon}</span>
+                <span>{item.label}</span>
+              </Link>
+            ))}
+          </nav>
+          <BugReportModal isOpen={showBugReport} onClose={() => setShowBugReport(false)} />
+          <PatchNotesModal isOpen={showPatchNotes} onClose={() => { setShowPatchNotes(false); setHasNewPatchNotesState(false); }} />
+        </div>
+      </PullToRefreshProvider>
     </ToastProvider>
   );
 }

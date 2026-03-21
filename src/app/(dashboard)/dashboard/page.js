@@ -358,9 +358,9 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
         </div>
       </div>
 
-      {comments.length > 0 && (
+      {(comments.length > 0 || showInput) && (
         <div className="comments-section" style={{ marginLeft: '2.5rem' }}>
-          {visibleComments.map((comment) => (
+          {comments.length > 0 && visibleComments.map((comment) => (
             <div key={comment.id} className="comment">
               {comment.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
