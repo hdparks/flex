@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../../lib/api';
 import { useToast } from '../../../components/ToastProvider';
+import { toLocalDatetimeInput, fromLocalDatetimeInput } from '../../../lib/dateUtils';
 
 export default function Team() {
   const { toast } = useToast();
@@ -9,7 +10,9 @@ export default function Team() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
+  const [showAddRace, setShowAddRace] = useState(null);
   const [form, setForm] = useState({ name: '', invite_code: '' });
+  const [raceForm, setRaceForm] = useState({ name: '', race_date: '', location: '' });
   const [openMenu, setOpenMenu] = useState(null);
 
   useEffect(() => {
@@ -20,6 +23,10 @@ export default function Team() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  const updateTeamRaces = (teamId, newRaces) => {
+    setTeams(teams.map(t => t.id === teamId ? { ...t, races: newRaces } : t));
+  };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -75,6 +82,37 @@ export default function Team() {
     try {
       await api.team.disband(teamId);
       setTeams(teams.filter(t => t.id !== teamId));
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  };
+
+  const handleAddRace = async (teamId, e) => {
+    e.preventDefault();
+    try {
+      const raceData = {
+        name: raceForm.name,
+        race_date: fromLocalDatetimeInput(raceForm.race_date),
+        location: raceForm.location || null,
+        team_id: teamId,
+      };
+      const newRace = await api.races.create(raceData);
+      const team = teams.find(t => t.id === teamId);
+      updateTeamRaces(teamId, [...(team.races || []), newRace]);
+      setShowAddRace(null);
+      setRaceForm({ name: '', race_date: '', location: '' });
+      toast('Race added!', 'success');
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  };
+
+  const handleDeleteRace = async (raceId, teamId) => {
+    if (!confirm('Delete this race?')) return;
+    try {
+      await api.races.delete(raceId);
+      const team = teams.find(t => t.id === teamId);
+      updateTeamRaces(teamId, (team.races || []).filter(r => r.id !== raceId));
     } catch (err) {
       toast(err.message, 'error');
     }
@@ -233,6 +271,90 @@ export default function Team() {
                   </div>
                 </div>
               ))
+            )}
+
+            <h3 style={{ marginBottom: '0.5rem', marginTop: '1.5rem', color: 'var(--text-muted)', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              Upcoming Races
+            </h3>
+
+            {(team.races || []).length > 0 ? (
+              team.races.map((race) => (
+                <div key={race.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <div>
+                    <div style={{ fontWeight: '600' }}>{race.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {new Date(race.race_date).toLocaleDateString()}
+                      {race.location && ` • ${race.location}`}
+                    </div>
+                  </div>
+                  <button
+                    className="btn-icon btn-danger"
+                    onClick={() => handleDeleteRace(race.id, team.id)}
+                    title="Delete race"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className="card" style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
+                No upcoming races
+              </div>
+            )}
+
+            {showAddRace === team.id ? (
+              <div className="card" style={{ marginTop: '0.5rem' }}>
+                <h4 style={{ marginBottom: '0.75rem' }}>Add Race</h4>
+                <form onSubmit={(e) => handleAddRace(team.id, e)}>
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="Race name (e.g., Boston Marathon)"
+                      value={raceForm.name}
+                      onChange={(e) => setRaceForm({ ...raceForm, name: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <input
+                      type="datetime-local"
+                      className="input"
+                      value={raceForm.race_date}
+                      onChange={(e) => setRaceForm({ ...raceForm, race_date: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="Location (optional)"
+                      value={raceForm.location}
+                      onChange={(e) => setRaceForm({ ...raceForm, location: e.target.value })}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => { setShowAddRace(null); setRaceForm({ name: '', race_date: '', location: '' }); }}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
+                      Add
+                    </button>
+                  </div>
+                </form>
+              </div>
+            ) : (
+              <button
+                className="btn btn-secondary"
+                style={{ width: '100%', marginTop: '0.5rem' }}
+                onClick={() => setShowAddRace(team.id)}
+              >
+                + Add Race
+              </button>
             )}
           </div>
           {index < teams.length - 1 && (
