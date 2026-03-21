@@ -13,6 +13,16 @@ export interface Release {
 
 export const patchNotes: Release[] = [
   {
+    version: '0.0.4',
+    date: '2026-03-21',
+    changes: [
+      { type: 'new', text: 'Added image uploads for workouts. Log your runs with photos!' },
+      { type: 'new', text: 'Added comments on workouts. Cheer each other on!' },
+      { type: 'new', text: 'Added user profile pages. Click on any username to see their stats and recent workouts.' },
+      { type: 'new', text: 'Added race countdown timer.' },
+    ],
+  },
+  {
     version: '0.0.3',
     date: '2026-03-19',
     changes: [
