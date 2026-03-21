@@ -6,8 +6,9 @@ This document provides context for AI agents working on the Flex codebase.
 
 - **Project Name**: flex
 - **Type**: Next.js micro-social media app for training
-- **Stack**: Next.js 16, React 19, JavaScript/TypeScript, Turso (libSQL), next-auth
+- **Stack**: Next.js 16, React 19, JavaScript/TypeScript, Turso (libSQL), next-auth v5
 - **Node Version**: >=18.15.0
+- **Test Framework**: Vitest with React Testing Library
 
 ## Commands
 
@@ -24,7 +25,12 @@ npm run lint    # Run ESLint with max-warnings 0
 ```
 
 ### Testing
-- **No tests currently configured** - Consider adding Vitest/Jest for unit tests and Playwright for E2E tests
+```bash
+npm test              # Run all tests in watch mode
+npm run test:run      # Run all tests once (CI mode)
+npx vitest run tests/componentLogic.test.js    # Run single test file
+npx vitest run --grep "should"                 # Run tests matching pattern
+```
 
 ## Code Style Guidelines
 
@@ -36,19 +42,14 @@ npm run lint    # Run ESLint with max-warnings 0
 - Library utilities in `src/lib/`
 
 ### Import Conventions
-- Use path alias `@/*` for files in `src/` (e.g., `@/lib/db`)
-- Use relative imports for same-directory components
-- Order: React imports → external libs → path alias → relative
+Use path alias `@/*` for files in `src/` (e.g., `@/lib/db`). Order: React imports → external libs → path alias → relative.
 
 ```typescript
 // Good
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import db from '@/lib/db';
 import MyComponent from './MyComponent';
-
-// Avoid
-import MyComponent from '../components/MyComponent';  // relative to lib
 ```
 
 ### Naming Conventions
@@ -76,10 +77,7 @@ interface User {
   avatar_url?: string;
 }
 
-// Good - explicit function params
-async function createWorkout(data: { type: string; title: string }): Promise<Workout> { ... }
-
-// Avoid
+// Avoid - implicit any
 async function createWorkout(data: any): Promise<any> { ... }
 ```
 
@@ -87,8 +85,7 @@ async function createWorkout(data: any): Promise<any> { ... }
 Create shared types in `src/lib/types.ts` for common data shapes:
 - `User`, `SessionUser` (from auth)
 - `Workout`, `CreateWorkoutInput`
-- `Team`, `TeamMember`
-- `Cheer`
+- `Team`, `TeamMember`, `Cheer`
 - API response types
 
 ### Component Patterns
@@ -109,28 +106,18 @@ function WorkoutCard({ workout }: { workout: Workout }) { ... }
 - Always handle auth with `auth()` from `@/lib/auth-config`
 - Wrap in try/catch, log errors, return 500 on failure
 - Validate request body before processing
-- Prefer TypeScript for type-safe request/response handling
 
 ```typescript
-interface CreateWorkoutRequest {
-  type: string;
-  title: string;
-  description?: string;
-  duration_minutes?: number;
-  completed_at?: string;
-}
-
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   try {
-    const data: CreateWorkoutRequest = await request.json();
+    const data = await request.json();
     if (!data.type || !data.title) {
       return NextResponse.json({ error: 'Type and title required' }, { status: 400 });
     }
-    // ... create workout
     return NextResponse.json(result, { status: 201 });
   } catch (err) {
     console.error(err);
@@ -153,13 +140,8 @@ export async function POST(request: Request) {
 - Utility classes: `.btn`, `.btn-primary`, `.btn-secondary`, `.card`, `.container`, `.avatar`, `.timestamp`, `.workout-type`
 
 ```typescript
-// CSS class
 <div className="card">...</div>
-
-// Inline for dynamic values
 <div style={{ width: someVar }}>...</div>
-
-// CSS variable
 style={{ color: 'var(--primary)' }}
 ```
 
@@ -193,11 +175,24 @@ await db.prepare(`SELECT * FROM users WHERE id = '${id}'`);
 ### File Extensions
 - `.ts` - Type-safe utilities, lib files
 - `.tsx` - React components with JSX (preferred)
-- `.js` - Only for simpler client-side utilities or when strictly necessary
-- `.jsx` - Only for simpler React components when strictly necessary
+- `.js` / `.jsx` - Only for simpler client-side utilities when strictly necessary
+
+### Testing Patterns
+Tests are in `tests/` directory using Vitest with React Testing Library.
+
+```javascript
+import { describe, it, expect } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
+
+describe('Component logic', () => {
+  it('should handle event correctly', () => {
+    // test implementation
+  });
+});
+```
 
 ### Patch Notes
-After completing work on a feature or bug fix, prompt the user to add an entry to `src/patchNotes.ts` describing the change. The patch notes file uses a specific format with `{ type: 'new' | 'fix' | 'update' | 'removal', text: '...' }` structure. When prompting the user, suggest they include:
-- Brief description of what changed
-- The type (new, fix, update, or removal)
-- Optional: credit to the user who reported/reported the issue (adds extra points to their profile)
+After completing work, prompt the user to add an entry to `src/patchNotes.ts`:
+```typescript
+{ type: 'new' | 'fix' | 'update' | 'removal', text: 'description', credit?: 'user' }
+```

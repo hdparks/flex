@@ -58,6 +58,7 @@ async function getClient() {
         description TEXT,
         duration_minutes INTEGER,
         completed_at DATETIME,
+        image TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id)
       )`,

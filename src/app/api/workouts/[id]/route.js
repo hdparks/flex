@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { auth } from '@/lib/auth-config';
+import { uploadImage } from '@/lib/upload';
 
 export async function GET(request, { params }) {
   const session = await auth();
@@ -86,11 +87,24 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 
-    const { type, title, description, duration_minutes, completed_at } = body;
+    const { type, title, description, duration_minutes, completed_at, image } = body;
+
+    let imageUrl = workout.image;
+    if (image !== undefined) {
+      if (image) {
+        try {
+          imageUrl = await uploadImage(image);
+        } catch (err) {
+          return NextResponse.json({ error: err.message }, { status: 400 });
+        }
+      } else {
+        imageUrl = null;
+      }
+    }
 
     await db.prepare(`
       UPDATE workouts 
-      SET type = ?, title = ?, description = ?, duration_minutes = ?, completed_at = ?
+      SET type = ?, title = ?, description = ?, duration_minutes = ?, completed_at = ?, image = ?
       WHERE id = ?
     `).run(
       type ?? workout.type,
@@ -98,6 +112,7 @@ export async function PUT(request, { params }) {
       description ?? workout.description,
       duration_minutes !== undefined ? duration_minutes : workout.duration_minutes,
       completed_at ?? workout.completed_at,
+      imageUrl,
       id
     );
 

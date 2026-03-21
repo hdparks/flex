@@ -11,6 +11,8 @@ export default function NewWorkout() {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const [form, setForm] = useState({
     type: 'run',
     title: '',
@@ -19,16 +21,34 @@ export default function NewWorkout() {
     completed_at: toLocalDatetimeInput(new Date().toISOString())
   });
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+        setImageFile(file);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     
     try {
-      await api.workouts.create({
+      const payload = {
         ...form,
         completed_at: fromLocalDatetimeInput(form.completed_at),
         duration_minutes: form.duration_minutes ? parseInt(form.duration_minutes) : null,
-      });
+      };
+      
+      if (imageFile) {
+        payload.image = imagePreview;
+      }
+      
+      await api.workouts.create(payload);
       router.push('/workouts');
     } catch (err) {
       toast(err.message, 'error');
@@ -76,6 +96,44 @@ export default function NewWorkout() {
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
+        </div>
+
+        <div className="form-group">
+          <label className="label">Photo (optional)</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <label className="btn btn-secondary" style={{ cursor: 'pointer', padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
+              Choose Image
+              <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
+            </label>
+            {imagePreview && (
+              <div style={{ position: 'relative' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={imagePreview} alt="Preview" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '0.5rem' }} />
+                <button
+                  type="button"
+                  onClick={() => { setImagePreview(null); setImageFile(null); }}
+                  style={{
+                    position: 'absolute',
+                    top: '-6px',
+                    right: '-6px',
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    background: 'var(--error)',
+                    border: 'none',
+                    color: 'white',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="form-group">

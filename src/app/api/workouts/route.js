@@ -3,6 +3,7 @@ import { v4 as uuid } from 'uuid';
 import db from '@/lib/db';
 import { notifyTeam } from '@/lib/push';
 import { auth } from '@/lib/auth-config';
+import { uploadImage } from '@/lib/upload';
 
 export async function GET(request) {
   const session = await auth();
@@ -67,19 +68,28 @@ export async function POST(request) {
   }
 
   try {
-    const { type, title, description, duration_minutes, completed_at } = await request.json();
+    const { type, title, description, duration_minutes, completed_at, image } = await request.json();
     
     if (!type || !title) {
       return NextResponse.json({ error: 'Type and title required' }, { status: 400 });
+    }
+
+    let imageUrl = null;
+    if (image) {
+      try {
+        imageUrl = await uploadImage(image);
+      } catch (err) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+      }
     }
 
     const id = uuid();
     const completedAt = completed_at || new Date().toISOString();
     
     await db.prepare(`
-      INSERT INTO workouts (id, user_id, type, title, description, duration_minutes, completed_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(id, session.user.id, type, title, description || null, duration_minutes || null, completedAt);
+      INSERT INTO workouts (id, user_id, type, title, description, duration_minutes, completed_at, image)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, session.user.id, type, title, description || null, duration_minutes || null, completedAt, imageUrl);
 
     const workout = await db.prepare('SELECT * FROM workouts WHERE id = ?').get(id);
 

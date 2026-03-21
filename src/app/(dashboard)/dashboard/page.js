@@ -239,9 +239,15 @@ function WorkoutCard({ workout, onCheer, currentUserId }) {
           </div>
           <h3 style={{ marginTop: '0.5rem' }}>{workout.title}</h3>
 	  <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '0.5rem', justifyContent: 'space-between'}}>
-	    <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem', fontSize: '0.875rem' }}>
-	      {workout?.description}
-	    </p>
+	    <div>
+	      <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem', fontSize: '0.875rem' }}>
+	        {workout?.description}
+	      </p>
+	      {workout.image && (
+	        // eslint-disable-next-line @next/next/no-img-element
+	        <img src={workout.image} alt="Workout" style={{ width: '100%', borderRadius: '0.5rem', marginTop: '0.5rem', maxHeight: '300px', objectFit: 'cover' }} />
+	      )}
+	    </div>
             <div style={{ display: 'flex', alignSelf: 'end', alignItems: 'center', gap: '0.5rem', background: 'var(--surface-light)', padding: '0.25rem 0.5rem', borderRadius: '1rem', flexShrink: 0 }}>
               <CheerButton workoutId={workout.id} onCheer={onCheer} disabled={isOwnWorkout} />
               {workout.cheer_count > 0 && (

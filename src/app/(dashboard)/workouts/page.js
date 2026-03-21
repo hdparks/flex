@@ -16,15 +16,35 @@ function WorkoutCard({ workout, onUpdate, onDelete, toast, canEdit = true }) {
     completed_at: toLocalDatetimeInput(workout.completed_at || workout.created_at)
   });
   const [saving, setSaving] = useState(false);
+  const [imagePreview, setImagePreview] = useState(workout.image || null);
+  const [imageFile, setImageFile] = useState(null);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+        setImageFile(file);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await onUpdate(workout.id, {
+      const data = {
         ...form,
         completed_at: fromLocalDatetimeInput(form.completed_at),
         duration_minutes: form.duration_minutes ? parseInt(form.duration_minutes) : null,
-      });
+      };
+      if (imageFile) {
+        data.image = imagePreview;
+      } else if (!imagePreview && workout.image) {
+        data.image = null;
+      }
+      await onUpdate(workout.id, data);
       setEditing(false);
     } catch (err) {
       toast(err.message, 'error');
@@ -76,6 +96,43 @@ function WorkoutCard({ workout, onUpdate, onDelete, toast, canEdit = true }) {
           />
         </div>
         <div className="form-group">
+          <label className="label">Photo</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <label className="btn btn-secondary" style={{ cursor: 'pointer', padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
+              Choose Image
+              <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
+            </label>
+            {imagePreview && (
+              <div style={{ position: 'relative' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={imagePreview} alt="Preview" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '0.5rem' }} />
+                <button
+                  type="button"
+                  onClick={() => { setImagePreview(null); setImageFile(null); }}
+                  style={{
+                    position: 'absolute',
+                    top: '-6px',
+                    right: '-6px',
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    background: 'var(--error)',
+                    border: 'none',
+                    color: 'white',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="form-group">
           <label className="label">Duration (min)</label>
           <input
             type="number"
@@ -115,6 +172,10 @@ function WorkoutCard({ workout, onUpdate, onDelete, toast, canEdit = true }) {
             <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem', fontSize: '0.875rem' }}>
               {workout.description}
             </p>
+          )}
+          {workout.image && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={workout.image} alt="Workout" style={{ width: '100%', borderRadius: '0.5rem', marginTop: '0.5rem', maxHeight: '200px', objectFit: 'cover' }} />
           )}
         </div>
         {canEdit && (
