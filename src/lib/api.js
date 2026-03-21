@@ -91,6 +91,11 @@ export const api = {
   users: {
     get: (id) => request(`/users/${id}`),
   },
+  races: {
+    getNext: () => request('/races'),
+    create: (data) => request('/races', { method: 'POST', body: JSON.stringify(data) }),
+    delete: (id) => request(`/races?id=${id}`, { method: 'DELETE' }),
+  },
   bugReports: {
     submit: (data) => request('/bug-reports', { method: 'POST', body: JSON.stringify(data) }),
   },

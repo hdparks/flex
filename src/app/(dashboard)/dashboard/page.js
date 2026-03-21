@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import { ImagePlus, Smile, CirclePlus, MessageSquare } from 'lucide-react';
 import { useToast } from '../../../components/ToastProvider';
 import { TrashIcon } from '../../../components/TrashIcon';
+import { CountdownTimer } from '../../../components/CountdownTimer';
 
 const EMOJIS = ['🔥', '💪', '👏', '❤️', '🎉', '⭐', '🚀', '💯'];
 
@@ -446,6 +447,7 @@ export default function Dashboard() {
   const [feed, setFeed] = useState([]);
   const [loading, setLoading] = useState(true);
   const [teams, setTeams] = useState([]);
+  const [nextRace, setNextRace] = useState(null);
 
   const loadFeed = () => {
     setLoading(true);
@@ -459,10 +461,15 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    Promise.all([api.team.feed(), api.team.get()])
-      .then(([feedData, teamData]) => {
+    Promise.all([
+      api.team.feed(),
+      api.team.get(),
+      api.races.getNext().catch(() => null),
+    ])
+      .then(([feedData, teamData, raceData]) => {
         setFeed(feedData);
         setTeams(teamData.teams || []);
+        setNextRace(raceData);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -503,6 +510,9 @@ export default function Dashboard() {
 
   return (
     <div>
+      {nextRace && (
+        <CountdownTimer raceDate={nextRace.race_date} raceName={nextRace.name} />
+      )}
       <h2 style={{ marginBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
         Team Activity
       </h2>

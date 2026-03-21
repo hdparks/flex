@@ -110,7 +110,13 @@ export async function GET(request) {
         ORDER BY tm.joined_at ASC
       `).all(membership.team_id);
 
-      return { ...membership, id: membership.team_id, members };
+      const races = await db.prepare(`
+        SELECT * FROM races
+        WHERE team_id = ? AND race_date > datetime('now')
+        ORDER BY race_date ASC
+      `).all(membership.team_id);
+
+      return { ...membership, id: membership.team_id, members, races };
     }));
 
     return NextResponse.json({ teams: teamsWithMembers });
