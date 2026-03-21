@@ -15,6 +15,30 @@ function urlBase64ToUint8Array(base64) {
   return uint8Array;
 }
 
+let swRegistration = null;
+
+export async function enableNotifications() {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+    throw new Error('Service workers not supported');
+  }
+
+  if (typeof Notification === 'undefined') {
+    throw new Error('Notifications not supported');
+  }
+
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') {
+    throw new Error('Notification permission denied');
+  }
+
+  if (!swRegistration) {
+    swRegistration = await navigator.serviceWorker.register('/sw.js');
+  }
+
+  await handlePushSubscription(swRegistration);
+  return true;
+}
+
 export default function ServiceWorkerRegistration() {
   const { status } = useSession();
   const initialized = useRef(false);
@@ -27,10 +51,10 @@ export default function ServiceWorkerRegistration() {
       if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
 
       try {
-        const registration = await navigator.serviceWorker.register('/sw.js');
+        swRegistration = await navigator.serviceWorker.register('/sw.js');
 
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
+        swRegistration.addEventListener('updatefound', () => {
+          const newWorker = swRegistration.installing;
           if (newWorker) {
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
@@ -39,8 +63,6 @@ export default function ServiceWorkerRegistration() {
             });
           }
         });
-
-        await handlePushSubscription(registration);
       } catch (err) {
         console.error('Service worker registration failed:', err);
       }
@@ -54,12 +76,6 @@ export default function ServiceWorkerRegistration() {
 
 async function handlePushSubscription(registration) {
   try {
-    const permission = Notification.permission;
-    if (permission !== 'granted') {
-      console.debug('Notification permission not granted');
-      return;
-    }
-
     const existingSubscription = await registration.pushManager.getSubscription();
     if (existingSubscription) {
       await api.push.subscribe(existingSubscription.toJSON());
@@ -67,7 +83,7 @@ async function handlePushSubscription(registration) {
     }
 
     const publicKey = await getPublicKey();
-    if (!publicKey) return;
+    if (!publicKey) throw new Error('Failed to get public key');
 
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
@@ -77,6 +93,7 @@ async function handlePushSubscription(registration) {
     await api.push.subscribe(subscription.toJSON());
   } catch (err) {
     console.error('Push subscription failed:', err);
+    throw err;
   }
 }
 

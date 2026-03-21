@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '../../../lib/api';
 import { useSession } from 'next-auth/react';
 import { useToast } from '../../../components/ToastProvider';
+import { enableNotifications } from '../../../components/ServiceWorkerRegistration';
 
 export default function ProfilePage() {
   const { data: session, update: updateSession } = useSession();
@@ -13,7 +14,14 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [username, setUsername] = useState('');
   const [avatarPreview, setAvatarPreview] = useState('');
+  const [notificationStatus, setNotificationStatus] = useState('default');
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof Notification !== 'undefined') {
+      setNotificationStatus(Notification.permission);
+    }
+  }, []);
 
   const fetchProfile = () => {
     setLoading(true);
@@ -96,6 +104,23 @@ export default function ProfilePage() {
       toast('Ping sent! Check your notifications.', 'success');
     } catch (err) {
       toast(err.message, 'error');
+    }
+  };
+
+  const handleEnableNotifications = async () => {
+    try {
+      await enableNotifications();
+      setNotificationStatus('granted');
+      toast('Notifications enabled!', 'success');
+    } catch (err) {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches;
+      
+      if (isIOS && !isPWA) {
+        toast('Install Flex App to enable notifications: tap Share > Add to Home Screen', 'error');
+      } else {
+        toast('Notifications are not supported in this browser. Try installing the app.', 'error');
+      }
     }
   };
 
@@ -215,6 +240,20 @@ export default function ProfilePage() {
           {saving ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
+
+      {notificationStatus !== 'granted' && (
+        <div className="card" style={{ marginTop: '1rem', textAlign: 'center' }}>
+          <p style={{ marginBottom: '0.75rem', color: 'var(--text-muted)' }}>
+            Enable push notifications to receive workout updates
+          </p>
+          <button
+            className="btn btn-secondary"
+            onClick={handleEnableNotifications}
+          >
+            Enable Notifications
+          </button>
+        </div>
+      )}
 
       {session?.user?.isAdmin && (
         <div className="card" style={{ marginTop: '2rem', border: '2px dashed var(--border)' }}>
