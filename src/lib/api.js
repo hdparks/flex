@@ -62,6 +62,11 @@ export const api = {
   cheers: {
     create: (workoutId, message, image) => request('/cheers', { method: 'POST', body: JSON.stringify({ workout_id: workoutId, message, image }) }),
   },
+  comments: {
+    list: (workoutId) => request(`/comments?workout_id=${workoutId}`),
+    create: (workoutId, content) => request('/comments', { method: 'POST', body: JSON.stringify({ workout_id: workoutId, content }) }),
+    delete: (id) => request(`/comments/${id}`, { method: 'DELETE' }),
+  },
   team: {
     get: () => request('/team'),
     create: (name) => request('/team', { method: 'POST', body: JSON.stringify({ name }) }),

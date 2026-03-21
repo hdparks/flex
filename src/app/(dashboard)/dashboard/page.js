@@ -3,8 +3,9 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '../../../lib/api';
 import { formatRelativeTime } from '../../../lib/dateUtils';
 import { useSession } from 'next-auth/react';
-import { ImagePlus, Smile, CirclePlus } from 'lucide-react';
+import { ImagePlus, Smile, CirclePlus, MessageSquare } from 'lucide-react';
 import { useToast } from '../../../components/ToastProvider';
+import { TrashIcon } from '../../../components/TrashIcon';
 
 const EMOJIS = ['🔥', '💪', '👏', '❤️', '🎉', '⭐', '🚀', '💯'];
 
@@ -201,8 +202,58 @@ function CheerButton({ workoutId, onCheer, disabled }) {
   );
 }
 
-function WorkoutCard({ workout, onCheer, currentUserId }) {
+function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
+  const [comments, setComments] = useState([]);
+  const [showAll, setShowAll] = useState(false);
+  const [showInput, setShowInput] = useState(false);
+  const [newComment, setNewComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [loadingComments, setLoadingComments] = useState(false);
   const isOwnWorkout = currentUserId && workout.userId === currentUserId;
+
+  const loadComments = async () => {
+    setLoadingComments(true);
+    try {
+      const data = await api.comments.list(workout.id);
+      setComments(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  useEffect(() => {
+    loadComments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workout.id]);
+
+  const handleSubmitComment = async () => {
+    if (!newComment.trim()) return;
+    setSubmitting(true);
+    try {
+      await api.comments.create(workout.id, newComment.trim());
+      setNewComment('');
+      setShowInput(false);
+      loadComments();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    try {
+      await api.comments.delete(commentId);
+      setComments(comments.filter(c => c.id !== commentId));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const visibleComments = showAll ? comments : comments.slice(0, 3);
+  const hasMoreComments = comments.length > 3;
 
   return (
     <div className="card">
@@ -249,6 +300,19 @@ function WorkoutCard({ workout, onCheer, currentUserId }) {
 	      )}
 	    </div>
             <div style={{ display: 'flex', alignSelf: 'end', alignItems: 'center', gap: '0.5rem', background: 'var(--surface-light)', padding: '0.25rem 0.5rem', borderRadius: '1rem', flexShrink: 0 }}>
+              <button
+                onClick={() => setShowInput(!showInput)}
+                className="btn btn-ghost"
+                style={{ padding: '0.25rem 0.5rem', opacity: showInput ? 1 : 0.7 }}
+                title="Add comment"
+              >
+                <MessageSquare size={18} />
+              </button>
+              {comments.length > 0 && (
+                <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                  {comments.length}
+                </span>
+              )}
               <CheerButton workoutId={workout.id} onCheer={onCheer} disabled={isOwnWorkout} />
               {workout.cheer_count > 0 && (
                 <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
@@ -289,6 +353,86 @@ function WorkoutCard({ workout, onCheer, currentUserId }) {
 	  </div>
         </div>
       </div>
+
+      {comments.length > 0 && (
+        <div className="comments-section" style={{ marginLeft: '2.5rem' }}>
+          {visibleComments.map((comment) => (
+            <div key={comment.id} className="comment">
+              {comment.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={comment.avatar_url}
+                  alt={comment.username}
+                  style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
+                />
+              ) : (
+                <div className="avatar" style={{ width: '28px', height: '28px', fontSize: '0.75rem' }}>
+                  {comment.username?.[0]?.toUpperCase()}
+                </div>
+              )}
+              <div className="comment-body">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <span className="comment-username">{comment.username}</span>
+                    <span className="timestamp" style={{ marginLeft: '0.5rem' }}>{formatRelativeTime(comment.created_at)}</span>
+                  </div>
+                  {currentUserId === comment.user_id && (
+                    <button className="btn-icon btn-danger" onClick={() => handleDeleteComment(comment.id)} title="Delete" style={{ marginLeft: '0.5rem' }}>
+                      <TrashIcon size={14} />
+                    </button>
+                  )}
+                </div>
+                <p className="comment-text">{comment.content}</p>
+              </div>
+            </div>
+          ))}
+          {hasMoreComments && (
+            <button
+              className="comment-action"
+              onClick={() => setShowAll(!showAll)}
+              style={{ marginTop: '0.5rem' }}
+            >
+              {showAll ? 'Show less' : `Show ${comments.length - 3} more comment${comments.length - 3 === 1 ? '' : 's'}`}
+            </button>
+          )}
+          {showInput ? (
+            <div className="comment-input-row">
+              <input
+                type="text"
+                className="input comment-input"
+                placeholder="Write a comment..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmitComment()}
+                autoFocus
+              />
+              <button
+                className="btn btn-primary"
+                style={{ padding: '0.5rem 0.75rem' }}
+                onClick={handleSubmitComment}
+                disabled={submitting || !newComment.trim()}
+              >
+                {submitting ? '...' : 'Post'}
+              </button>
+              <button
+                className="btn btn-secondary"
+                style={{ padding: '0.5rem 0.75rem' }}
+                onClick={() => { setShowInput(false); setNewComment(''); }}
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              className="comment-action"
+              onClick={() => setShowInput(true)}
+              style={{ marginTop: '0.5rem' }}
+            >
+              Add a comment
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

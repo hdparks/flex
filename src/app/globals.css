@@ -324,3 +324,68 @@ input, textarea, select {
 .dropdown-item:last-child {
   border-bottom: none;
 }
+
+.comments-section {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.comment {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  align-items: flex-start;
+}
+
+.comment:last-child {
+  margin-bottom: 0;
+}
+
+.comment-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.comment-username {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.comment-text {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.comment-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.comment-action {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.comment-action:hover {
+  color: var(--primary);
+}
+
+.comment-input-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.comment-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
