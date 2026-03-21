@@ -53,7 +53,8 @@ export async function GET(request) {
       const placeholders = teamMembers.map(() => '?').join(',');
       
       const workouts = await db.prepare(`
-        SELECT w.*, u.username, u.avatar_url, 'workout' as type,
+        SELECT w.user_id AS userId, w.id, w.type, w.title, w.description, w.duration_minutes, w.completed_at, w.image, w.created_at, 
+          u.username, u.avatar_url, 'workout' as type,
           (SELECT COUNT(*) FROM cheers c WHERE c.workout_id = w.id) as cheer_count
         FROM workouts w
         JOIN users u ON w.user_id = u.id

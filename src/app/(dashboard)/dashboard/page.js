@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
+import Link from 'next/link';
 import { api } from '../../../lib/api';
 import { formatRelativeTime } from '../../../lib/dateUtils';
 import { useSession } from 'next-auth/react';
@@ -273,7 +274,9 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <span style={{ fontWeight: '600' }}>{workout.username}</span>
+              <Link href={`/user/${workout.userId}`} style={{ fontWeight: '600', color: 'inherit', textDecoration: 'none' }}>
+                {workout.username}
+              </Link>
               {isOwnWorkout && (
                 <span style={{ fontSize: '0.75rem', color: 'var(--primary)', background: 'var(--surface-light)', padding: '0.125rem 0.375rem', borderRadius: '0.25rem' }}>
                   you

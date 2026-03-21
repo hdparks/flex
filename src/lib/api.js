@@ -88,6 +88,9 @@ export const api = {
     get: () => request('/profile'),
     update: (data) => request('/profile', { method: 'PUT', body: JSON.stringify(data) }),
   },
+  users: {
+    get: (id) => request(`/users/${id}`),
+  },
   bugReports: {
     submit: (data) => request('/bug-reports', { method: 'POST', body: JSON.stringify(data) }),
   },
