@@ -119,7 +119,8 @@ export async function PUT(request, { params }) {
     );
 
     const updated = await db.prepare('SELECT * FROM workouts WHERE id = ?').get(id);
-    return NextResponse.json(updated);
+    const user = await db.prepare('SELECT username, avatar_url FROM users WHERE id = ?').get(updated.user_id);
+    return NextResponse.json({ ...updated, ...user });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
