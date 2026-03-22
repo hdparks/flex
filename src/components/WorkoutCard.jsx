@@ -217,7 +217,7 @@ export function WorkoutCard({ workout, currentUserId, onCheer, onDelete, onEdit 
   const [loadingComments, setLoadingComments] = useState(false);
   const [participantLoading, setParticipantLoading] = useState(false);
   const [localParticipants, setLocalParticipants] = useState(workout.participants || []);
-  const isOwnWorkout = currentUserId && workout.userId === currentUserId;
+  const isOwnWorkout = currentUserId && workout.user_id === currentUserId;
   const isParticipant = localParticipants.some(p => p.user_id === currentUserId);
 
   const currentUser = {
@@ -367,7 +367,7 @@ export function WorkoutCard({ workout, currentUserId, onCheer, onDelete, onEdit 
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <Link href={`/user/${workout.userId}`} style={{ fontWeight: '600', color: 'inherit', textDecoration: 'none' }}>
+              <Link href={`/user/${workout.user_id}`} style={{ fontWeight: '600', color: 'inherit', textDecoration: 'none' }}>
                 {workout.username}
                 {localParticipants?.length > 0 && (
                   <span style={{ fontWeight: '400', color: 'var(--text-muted)', marginLeft: '0.25rem' }}>
