@@ -3,6 +3,36 @@ import { v4 as uuidv4 } from 'uuid';
 import db from '@/lib/db';
 import { auth } from '@/lib/auth-config';
 
+export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+  const status = searchParams.get('status');
+
+  try {
+    let query = `
+      SELECT 
+        br.*,
+        u.username as reporter_username,
+        u.avatar_url as reporter_avatar
+      FROM bug_reports br
+      LEFT JOIN users u ON br.user_id = u.id
+    `;
+    const args = [];
+
+    if (status && ['open', 'addressed'].includes(status)) {
+      query += ' WHERE br.status = ?';
+      args.push(status);
+    }
+
+    query += ' ORDER BY CASE br.severity WHEN \'critical\' THEN 1 WHEN \'high\' THEN 2 WHEN \'medium\' THEN 3 WHEN \'low\' THEN 4 ELSE 5 END, br.created_at DESC';
+
+    const bugReports = await db.prepare(query).all(...args);
+    return NextResponse.json(bugReports);
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: 'Failed to fetch bug reports' }, { status: 500 });
+  }
+}
+
 export async function POST(request) {
   const session = await auth();
   if (!session?.user) {
