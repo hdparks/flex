@@ -28,6 +28,27 @@ export async function GET(request) {
         ORDER BY COALESCE(w.completed_at, w.created_at) DESC
       `).all(userId, userId, userId);
 
+      if (workouts.length > 0) {
+        const workoutIds = workouts.map(w => w.id);
+        const participantsPlaceholders = workoutIds.map(() => '?').join(',');
+        const participants = await db.prepare(`
+          SELECT p.*, u.username, u.avatar_url
+          FROM workout_participants p
+          JOIN users u ON p.user_id = u.id
+          WHERE p.workout_id IN (${participantsPlaceholders})
+        `).all(...workoutIds);
+
+        const participantsMap = participants.reduce((acc, p) => {
+          if (!acc[p.workout_id]) acc[p.workout_id] = [];
+          acc[p.workout_id].push(p);
+          return acc;
+        }, {});
+
+        workouts.forEach(w => {
+          w.participants = participantsMap[w.id] || [];
+        });
+      }
+
       return NextResponse.json(workouts);
     }
 
@@ -57,6 +78,27 @@ export async function GET(request) {
       WHERE w.user_id IN (${placeholders})
       ORDER BY w.completed_at DESC, w.created_at DESC
     `).all(...teamMembers);
+
+    if (workouts.length > 0) {
+      const workoutIds = workouts.map(w => w.id);
+      const participantsPlaceholders = workoutIds.map(() => '?').join(',');
+      const participants = await db.prepare(`
+        SELECT p.*, u.username, u.avatar_url
+        FROM workout_participants p
+        JOIN users u ON p.user_id = u.id
+        WHERE p.workout_id IN (${participantsPlaceholders})
+      `).all(...workoutIds);
+
+      const participantsMap = participants.reduce((acc, p) => {
+        if (!acc[p.workout_id]) acc[p.workout_id] = [];
+        acc[p.workout_id].push(p);
+        return acc;
+      }, {});
+
+      workouts.forEach(w => {
+        w.participants = participantsMap[w.id] || [];
+      });
+    }
 
     return NextResponse.json(workouts);
   } catch (err) {
