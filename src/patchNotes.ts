@@ -13,6 +13,16 @@ export interface Release {
 
 export const patchNotes: Release[] = [
   {
+    version: '0.0.7',
+    date: '2026-03-22',
+    changes: [
+      { type: 'new', text: 'Added date filter to the feed. Filter by Today, This Week, This Month, or All Time.'},
+      { type: 'new', text: 'See who cheered your workout! Click on the cheers to see a list of everyone who cheered and what they said.'},
+      { type: 'improvement', text: 'Click on workout photos to view them full-screen.'},
+      { type: 'fix', text: 'Workouts you join as a participant now appear in your workout history and count toward your total minutes.'},
+    ]
+  },
+  {
     version: '0.0.6',
     date: '2026-03-21',
     changes: [

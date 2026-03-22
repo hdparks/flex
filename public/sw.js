@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v0.0.6';
+const CACHE_VERSION = 'v0.0.7';
 const STATIC_CACHE = `flex-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `flex-dynamic-${CACHE_VERSION}`;
 

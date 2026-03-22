@@ -78,7 +78,7 @@ export const api = {
     getByInviteCode: (inviteCode) => request(`/team?invite_code=${inviteCode}`),
     leave: (teamId) => request(`/team?teamId=${teamId}&action=leave`, { method: 'DELETE' }),
     disband: (teamId) => request(`/team?teamId=${teamId}`, { method: 'DELETE' }),
-    feed: (cursor) => request(`/team?feed=true${cursor ? `&cursor=${cursor}` : ''}`),
+    feed: (cursor, period) => request(`/team?feed=true${cursor ? `&cursor=${cursor}` : ''}${period ? `&period=${period}` : ''}`),
   },
   push: {
     getPublicKey: () => request('/push'),

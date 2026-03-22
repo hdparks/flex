@@ -210,6 +210,9 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
   const [comments, setComments] = useState([]);
   const [showAll, setShowAll] = useState(false);
   const [showInput, setShowInput] = useState(false);
+  const [showAllCheers, setShowAllCheers] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState(null);
+  const cheersPopoverRef = useRef(null);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -240,6 +243,19 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
     loadComments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workout.id]);
+
+  useEffect(() => {
+    if (!showAllCheers) return;
+    
+    const handleClickOutside = (event) => {
+      if (cheersPopoverRef.current && !cheersPopoverRef.current.contains(event.target)) {
+        setShowAllCheers(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showAllCheers]);
 
   const handleSubmitComment = async () => {
     if (!newComment.trim()) return;
@@ -382,7 +398,12 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
 	      </p>
 	      {workout.image && (
 	        // eslint-disable-next-line @next/next/no-img-element
-	        <img src={workout.image} alt="Workout" style={{ width: '100%', borderRadius: '0.5rem', marginTop: '0.5rem', maxHeight: '300px', objectFit: 'cover' }} />
+	        <img 
+	          src={workout.image} 
+	          alt="Workout" 
+	          style={{ width: '100%', borderRadius: '0.5rem', marginTop: '0.5rem', maxHeight: '300px', objectFit: 'cover', cursor: 'pointer' }}
+	          onClick={() => setLightboxImage(workout.image)}
+	        />
 	      )}
 	    </div>
             <div style={{ display: 'flex', alignSelf: 'end', alignItems: 'center', gap: '0.5rem', background: 'var(--surface-light)', padding: '0.25rem 0.5rem', borderRadius: '1rem', flexShrink: 0 }}>
@@ -406,31 +427,75 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
                 </span>
               )}
               {workout.cheers?.length > 0 && (
-                <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '0.5rem' }}>
-                  {workout.cheers.slice(0, 5).map((cheer, i) => (
-                    <div
-                      key={cheer.id}
-                      style={{
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '50%',
-                        overflow: 'hidden',
-                        border: '2px solid var(--surface-light)',
-                        marginLeft: i > 0 ? '-8px' : 0,
-                        background: cheer.image ? `url(${cheer.image}) center/cover` : 'transparent',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: cheer.image ? '0' : '1.05rem',
-                      }}
-                    >
-                      {!cheer.image && (cheer.message || '👏')}
+                <div style={{ position: 'relative' }} ref={cheersPopoverRef}>
+                  <button
+                    onClick={() => setShowAllCheers(!showAllCheers)}
+                    style={{
+                      display: 'flex',
+                      gap: '0.25rem',
+                      marginLeft: '0.5rem',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  >
+                    {workout.cheers.slice(0, 5).map((cheer, i) => (
+                      <div
+                        key={cheer.id}
+                        style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          overflow: 'hidden',
+                          border: '2px solid var(--surface-light)',
+                          marginLeft: i > 0 ? '-8px' : 0,
+                          background: cheer.image ? `url(${cheer.image}) center/cover` : 'transparent',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: cheer.image ? '0' : '1.05rem',
+                        }}
+                        title={`${cheer.username || 'Someone'}: ${cheer.message || '👏'}`}
+                      >
+                        {!cheer.image && (cheer.message || '👏')}
+                      </div>
+                    ))}
+                    {workout.cheer_count > 5 && (
+                      <span style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--text-muted)',
+                        marginLeft: '0.25rem',
+                        alignSelf: 'center',
+                      }}>
+                        +{workout.cheer_count - 5}
+                      </span>
+                    )}
+                  </button>
+                  {showAllCheers && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: 0,
+                      marginTop: '0.5rem',
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '0.5rem',
+                      padding: '0.75rem',
+                      minWidth: '200px',
+                      zIndex: 100,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                        Cheers
+                      </div>
+                      {workout.cheers.map((cheer) => (
+                        <div key={cheer.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                          <span style={{ fontSize: '1rem' }}>{cheer.image ? '📷' : (cheer.message || '👏')}</span>
+                          <span style={{ fontSize: '0.875rem' }}>{cheer.username}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                  {workout.cheer_count > 5 && (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.25rem' }}>
-                      +{workout.cheer_count - 5}
-                    </span>
                   )}
                 </div>
               )}
@@ -528,6 +593,58 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
           )}
         </div>
       )}
+      {lightboxImage && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.9)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            cursor: 'pointer',
+          }}
+          onClick={() => setLightboxImage(null)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightboxImage}
+            alt="Preview"
+            style={{
+              maxWidth: '90%',
+              maxHeight: '90%',
+              objectFit: 'contain',
+              borderRadius: '0.5rem',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setLightboxImage(null)}
+            style={{
+              position: 'absolute',
+              top: '1rem',
+              right: '1rem',
+              background: 'rgba(255,255,255,0.2)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              color: 'white',
+              fontSize: '1.5rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -541,11 +658,12 @@ export default function Dashboard() {
   const [hasMore, setHasMore] = useState(true);
   const [teams, setTeams] = useState([]);
   const [nextRace, setNextRace] = useState(null);
+  const [period, setPeriod] = useState('all');
   const loadMoreRef = useRef(null);
 
   useEffect(() => {
     Promise.all([
-      api.team.feed(),
+      api.team.feed(null, period),
       api.team.get(),
       api.races.getNext().catch(() => null),
     ])
@@ -557,7 +675,7 @@ export default function Dashboard() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [period]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore || feed.length === 0) return;
@@ -566,7 +684,7 @@ export default function Dashboard() {
     
     setLoadingMore(true);
     try {
-      const data = await api.team.feed(cursor);
+      const data = await api.team.feed(cursor, period);
       setFeed(prev => [...prev, ...(data.workouts || [])]);
       setHasMore(!!data.nextCursor);
     } catch (err) {
@@ -574,7 +692,7 @@ export default function Dashboard() {
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, hasMore, feed]);
+  }, [loadingMore, hasMore, feed, period]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -635,9 +753,29 @@ export default function Dashboard() {
       {nextRace && (
         <CountdownTimer raceDate={nextRace.race_date} raceName={nextRace.name} />
       )}
-      <h2 style={{ marginBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-        Team Activity
-      </h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h2 style={{ color: 'var(--text-muted)', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>
+          Team Activity
+        </h2>
+        <select
+          value={period}
+          onChange={(e) => setPeriod(e.target.value)}
+          style={{
+            padding: '0.25rem 0.5rem',
+            borderRadius: '0.375rem',
+            border: '1px solid var(--border)',
+            background: 'var(--surface)',
+            color: 'var(--text)',
+            fontSize: '0.875rem',
+            cursor: 'pointer'
+          }}
+        >
+          <option value="all">All Time</option>
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+        </select>
+      </div>
       {feed.map((item) => (
         <WorkoutCard
           key={item.id}
