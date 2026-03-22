@@ -204,7 +204,7 @@ function CheerButton({ workoutId, onCheer, disabled }) {
   );
 }
 
-function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
+function WorkoutCard({ workout, onCheer, currentUserId, onDelete }) {
   const { data: session } = useSession();
   const { toast } = useToast();
   const [comments, setComments] = useState([]);
@@ -495,6 +495,16 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
               >
                 <Users size={18} style={{ color: isParticipant ? 'var(--primary)' : 'inherit' }} />
               </button>
+              {isOwnWorkout && onDelete && (
+                <button
+                  onClick={() => { if (confirm('Delete this workout?')) onDelete(workout.id); }}
+                  className="btn btn-ghost"
+                  style={{ padding: '0.25rem 0.5rem', opacity: 0.7 }}
+                  title="Delete workout"
+                >
+                  <TrashIcon size={18} />
+                </button>
+              )}
             </div>
 	    
 	  </div>
@@ -710,6 +720,17 @@ export default function Dashboard() {
     }
   };
 
+  const handleDelete = async (workoutId) => {
+    try {
+      await api.workouts.delete(workoutId);
+      setFeed(prev => prev.filter(w => w.id !== workoutId));
+      toast('Workout deleted', 'success');
+    } catch (err) {
+      console.error(err);
+      toast(err.message || 'Failed to delete', 'error');
+    }
+  };
+
   if (loading) return <div className="container">Loading...</div>;
 
   if (teams.length === 0) {
@@ -767,6 +788,7 @@ export default function Dashboard() {
           workout={item}
           onCheer={handleCheer}
           currentUserId={session?.user?.id}
+          onDelete={handleDelete}
         />
       ))}
       {hasMore && (
