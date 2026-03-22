@@ -212,6 +212,7 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
   const [showInput, setShowInput] = useState(false);
   const [showAllCheers, setShowAllCheers] = useState(false);
   const [lightboxImage, setLightboxImage] = useState(null);
+  const cheersPopoverRef = useRef(null);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -242,6 +243,19 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
     loadComments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workout.id]);
+
+  useEffect(() => {
+    if (!showAllCheers) return;
+    
+    const handleClickOutside = (event) => {
+      if (cheersPopoverRef.current && !cheersPopoverRef.current.contains(event.target)) {
+        setShowAllCheers(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showAllCheers]);
 
   const handleSubmitComment = async () => {
     if (!newComment.trim()) return;
@@ -413,7 +427,7 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
                 </span>
               )}
               {workout.cheers?.length > 0 && (
-                <div style={{ position: 'relative' }}>
+                <div style={{ position: 'relative' }} ref={cheersPopoverRef}>
                   <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '0.5rem' }}>
                     {workout.cheers.slice(0, 5).map((cheer, i) => (
                       <div
@@ -439,7 +453,7 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
                     ))}
                     {workout.cheer_count > 5 && (
                       <button
-                        onClick={() => setShowAllCheers(!showAllCheers)}
+                        onClick={(e) => { e.stopPropagation(); setShowAllCheers(!showAllCheers); }}
                         style={{
                           fontSize: '0.75rem',
                           color: 'var(--text-muted)',
