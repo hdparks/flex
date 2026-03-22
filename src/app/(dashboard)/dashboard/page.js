@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { api } from '../../../lib/api';
 import { formatRelativeTime } from '../../../lib/dateUtils';
 import { useSession } from 'next-auth/react';
-import { ImagePlus, Smile, CirclePlus, MessageSquare, Users } from 'lucide-react';
+import { ImagePlus, Smile, CirclePlus, Users } from 'lucide-react';
 import { useToast } from '../../../components/ToastProvider';
 import { TrashIcon } from '../../../components/TrashIcon';
 import { CountdownTimer } from '../../../components/CountdownTimer';
@@ -209,7 +209,7 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
   const { toast } = useToast();
   const [comments, setComments] = useState([]);
   const [showAll, setShowAll] = useState(false);
-  const [showInput, setShowInput] = useState(false);
+  const [showInput, setShowInput] = useState(true);
   const [showAllCheers, setShowAllCheers] = useState(false);
   const [lightboxImage, setLightboxImage] = useState(null);
   const cheersPopoverRef = useRef(null);
@@ -407,19 +407,6 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
 	      )}
 	    </div>
             <div style={{ display: 'flex', alignSelf: 'end', alignItems: 'center', gap: '0.5rem', background: 'var(--surface-light)', padding: '0.25rem 0.5rem', borderRadius: '1rem', flexShrink: 0 }}>
-              <button
-                onClick={() => setShowInput(!showInput)}
-                className="btn btn-ghost"
-                style={{ padding: '0.25rem 0.5rem', opacity: showInput ? 1 : 0.7 }}
-                title="Add comment"
-              >
-                <MessageSquare size={18} />
-              </button>
-              {comments.length > 0 && (
-                <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                  {comments.length}
-                </span>
-              )}
               <CheerButton workoutId={workout.id} onCheer={onCheer} disabled={isOwnWorkout} />
               {workout.cheer_count > 0 && (
                 <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
@@ -514,9 +501,8 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
         </div>
       </div>
 
-      {(comments.length > 0 || showInput) && (
-        <div className="comments-section" style={{ marginLeft: '2.5rem' }}>
-          {comments.length > 0 && visibleComments.map((comment) => (
+      <div className="comments-section" style={{ marginLeft: '2.5rem' }}>
+        {comments.length > 0 && visibleComments.map((comment) => (
             <div key={comment.id} className="comment">
               {comment.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -592,7 +578,6 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
             </button>
           )}
         </div>
-      )}
       {lightboxImage && (
         <div
           style={{
