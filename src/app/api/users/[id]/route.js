@@ -13,12 +13,20 @@ export async function GET(request, { params }) {
         u.username, 
         u.avatar_url, 
         u.created_at,
-        COUNT(w.id) as workout_count,
-        COALESCE(SUM(w.duration_minutes), 0) as total_minutes
+        (
+          SELECT COUNT(*) FROM workouts WHERE user_id = u.id
+        ) + (
+          SELECT COUNT(*) FROM workout_participants WHERE user_id = u.id
+        ) as workout_count,
+        COALESCE((
+          SELECT SUM(w.duration_minutes) FROM workouts w WHERE w.user_id = u.id
+        ), 0) + COALESCE((
+          SELECT SUM(w.duration_minutes) FROM workout_participants p
+          JOIN workouts w ON p.workout_id = w.id
+          WHERE p.user_id = u.id
+        ), 0) as total_minutes
       FROM users u
-      LEFT JOIN workouts w ON w.user_id = u.id
       WHERE u.id = ?
-      GROUP BY u.id
     `).get(id);
 
     if (!user) {

@@ -80,6 +80,15 @@ async function getClient() {
         FOREIGN KEY (user_id) REFERENCES users(id),
         FOREIGN KEY (workout_id) REFERENCES workouts(id)
       )`,
+      `CREATE TABLE IF NOT EXISTS workout_participants (
+        id TEXT PRIMARY KEY,
+        workout_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (workout_id) REFERENCES workouts(id),
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        UNIQUE(workout_id, user_id)
+      )`,
       `CREATE TABLE IF NOT EXISTS races (
         id TEXT PRIMARY KEY,
         team_id TEXT,
@@ -111,6 +120,7 @@ async function getClient() {
       `CREATE INDEX IF NOT EXISTS idx_workouts_completed ON workouts(completed_at)`,
       `CREATE INDEX IF NOT EXISTS idx_cheers_workout ON cheers(workout_id)`,
       `CREATE INDEX IF NOT EXISTS idx_comments_workout ON comments(workout_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_participants_workout ON workout_participants(workout_id)`,
       `CREATE INDEX IF NOT EXISTS idx_races_user_date ON races(user_id, race_date)`,
       `CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id)`,
       `CREATE UNIQUE INDEX IF NOT EXISTS idx_push_user_endpoint ON push_subscriptions(user_id, endpoint)`,
