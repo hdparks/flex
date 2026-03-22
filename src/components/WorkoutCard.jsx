@@ -558,7 +558,6 @@ export function WorkoutCard({ workout, currentUserId, onCheer, onDelete }) {
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSubmitComment()}
-                autoFocus
               />
               <button
                 className="btn btn-primary"
