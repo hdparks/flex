@@ -2,12 +2,13 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { api } from '../../../../lib/api';
-import { formatRelativeTime } from '../../../../lib/dateUtils';
-import { TrashIcon } from '../../../../components/TrashIcon';
+import { api } from '@/lib/api';
+import { useSession } from 'next-auth/react';
+import { WorkoutCard } from '@/components/WorkoutCard';
 
 export default function UserProfile() {
   const params = useParams();
+  const { data: session } = useSession();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -109,34 +110,11 @@ export default function UserProfile() {
 
       {user.workouts && user.workouts.length > 0 ? (
         user.workouts.map((workout) => (
-          <div key={workout.id} className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <span className="workout-type">{workout.type}</span>
-                <h3 style={{ marginTop: '0.5rem' }}>{workout.title}</h3>
-                {workout.description && (
-                  <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem', fontSize: '0.875rem' }}>
-                    {workout.description}
-                  </p>
-                )}
-              </div>
-              {workout.duration_minutes && (
-                <span style={{ color: 'var(--primary)', fontWeight: '600', fontSize: '0.875rem' }}>
-                  {workout.duration_minutes}m
-                </span>
-              )}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem' }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                {formatRelativeTime(workout.completed_at || workout.created_at)}
-              </span>
-              {workout.cheer_count > 0 && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  {workout.cheer_count} cheers
-                </span>
-              )}
-            </div>
-          </div>
+          <WorkoutCard
+            key={workout.id}
+            workout={workout}
+            currentUserId={session?.user?.id}
+          />
         ))
       ) : (
         <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
