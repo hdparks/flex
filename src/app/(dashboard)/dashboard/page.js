@@ -428,11 +428,21 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
               )}
               {workout.cheers?.length > 0 && (
                 <div style={{ position: 'relative' }} ref={cheersPopoverRef}>
-                  <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '0.5rem' }}>
+                  <button
+                    onClick={() => setShowAllCheers(!showAllCheers)}
+                    style={{
+                      display: 'flex',
+                      gap: '0.25rem',
+                      marginLeft: '0.5rem',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  >
                     {workout.cheers.slice(0, 5).map((cheer, i) => (
                       <div
                         key={cheer.id}
-                        title={cheer.username ? `${cheer.username}: ${cheer.message || '👏'}` : (cheer.message || '👏')}
                         style={{
                           width: '24px',
                           height: '24px',
@@ -445,29 +455,23 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontSize: cheer.image ? '0' : '1.05rem',
-                          cursor: 'pointer',
                         }}
+                        title={`${cheer.username || 'Someone'}: ${cheer.message || '👏'}`}
                       >
                         {!cheer.image && (cheer.message || '👏')}
                       </div>
                     ))}
                     {workout.cheer_count > 5 && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setShowAllCheers(!showAllCheers); }}
-                        style={{
-                          fontSize: '0.75rem',
-                          color: 'var(--text-muted)',
-                          marginLeft: '0.25rem',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: 0,
-                        }}
-                      >
+                      <span style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--text-muted)',
+                        marginLeft: '0.25rem',
+                        alignSelf: 'center',
+                      }}>
                         +{workout.cheer_count - 5}
-                      </button>
+                      </span>
                     )}
-                  </div>
+                  </button>
                   {showAllCheers && (
                     <div style={{
                       position: 'absolute',
