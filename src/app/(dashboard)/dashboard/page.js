@@ -1,10 +1,10 @@
 'use client';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { api } from '../../../lib/api';
 import { formatRelativeTime } from '../../../lib/dateUtils';
 import { useSession } from 'next-auth/react';
-import { ImagePlus, Smile, CirclePlus, MessageSquare } from 'lucide-react';
+import { ImagePlus, Smile, CirclePlus, MessageSquare, Users } from 'lucide-react';
 import { useToast } from '../../../components/ToastProvider';
 import { TrashIcon } from '../../../components/TrashIcon';
 import { CountdownTimer } from '../../../components/CountdownTimer';
@@ -205,13 +205,24 @@ function CheerButton({ workoutId, onCheer, disabled }) {
 }
 
 function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
+  const { data: session } = useSession();
+  const { toast } = useToast();
   const [comments, setComments] = useState([]);
   const [showAll, setShowAll] = useState(false);
   const [showInput, setShowInput] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loadingComments, setLoadingComments] = useState(false);
+  const [participantLoading, setParticipantLoading] = useState(false);
+  const [localParticipants, setLocalParticipants] = useState(workout.participants || []);
   const isOwnWorkout = currentUserId && workout.userId === currentUserId;
+  const isParticipant = localParticipants.some(p => p.user_id === currentUserId);
+
+  const currentUser = {
+    user_id: session?.user?.id,
+    username: session?.user?.name,
+    avatar_url: session?.user?.image,
+  };
 
   const loadComments = async () => {
     setLoadingComments(true);
@@ -254,6 +265,38 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
     }
   };
 
+  const handleToggleParticipant = async () => {
+    if (participantLoading || isOwnWorkout) return;
+    
+    const wasParticipant = isParticipant;
+    if (wasParticipant) {
+      setLocalParticipants(localParticipants.filter(p => p.user_id !== currentUserId));
+    } else {
+      setLocalParticipants([...localParticipants, currentUser]);
+    }
+    
+    setParticipantLoading(true);
+    try {
+      if (wasParticipant) {
+        await api.participants.remove(workout.id);
+        toast('Removed from workout', 'success');
+      } else {
+        await api.participants.add(workout.id);
+        toast('Added to workout!', 'success');
+      }
+    } catch (err) {
+      console.error(err);
+      if (wasParticipant) {
+        setLocalParticipants([...localParticipants, currentUser]);
+      } else {
+        setLocalParticipants(localParticipants.filter(p => p.user_id !== currentUserId));
+      }
+      toast(err.message || 'Failed to update', 'error');
+    } finally {
+      setParticipantLoading(false);
+    }
+  };
+
   const visibleComments = showAll ? comments : comments.slice(0, 3);
   const hasMoreComments = comments.length > 3;
 
@@ -261,22 +304,61 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
     <div className="card">
       <div style={{ display: 'flex', alignItems: 'flex-start' }}>
         <div style={{ marginRight: '0.5rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem' }}>
-          {workout.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={workout.avatar_url}
-              alt={workout.username}
-              style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
-            />
-          ) : (
-            <div className="avatar">{workout.username?.[0]?.toUpperCase()}</div>
-          )}
+          <div style={{ display: 'flex' }}>
+            {workout.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={workout.avatar_url}
+                alt={workout.username}
+                style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
+              />
+            ) : (
+              <div className="avatar">{workout.username?.[0]?.toUpperCase()}</div>
+            )}
+            {localParticipants?.map((p, i) => (
+              p.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={p.id}
+                  src={p.avatar_url}
+                  alt={p.username}
+                  title={p.username}
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    marginLeft: '-12px',
+                    border: '2px solid var(--surface)',
+                  }}
+                />
+              ) : (
+                <div
+                  key={p.id}
+                  title={p.username}
+                  className="avatar"
+                  style={{
+                    marginLeft: '-12px',
+                    border: '2px solid var(--surface)',
+                    fontSize: '0.9rem',
+                  }}
+                >
+                  {p.username?.[0]?.toUpperCase()}
+                </div>
+              )
+            ))}
+          </div>
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               <Link href={`/user/${workout.userId}`} style={{ fontWeight: '600', color: 'inherit', textDecoration: 'none' }}>
                 {workout.username}
+                {localParticipants?.length > 0 && (
+                  <span style={{ fontWeight: '400', color: 'var(--text-muted)', marginLeft: '0.25rem' }}>
+                    + {localParticipants.map(p => p.username).join(', ')}
+                  </span>
+                )}
               </Link>
               {isOwnWorkout && (
                 <span style={{ fontSize: '0.75rem', color: 'var(--primary)', background: 'var(--surface-light)', padding: '0.125rem 0.375rem', borderRadius: '0.25rem' }}>
@@ -352,6 +434,15 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
                   )}
                 </div>
               )}
+              <button
+                onClick={handleToggleParticipant}
+                className="btn btn-ghost"
+                style={{ padding: '0.25rem 0.5rem', opacity: isOwnWorkout ? 0.5 : (isParticipant ? 1 : 0.7) }}
+                disabled={isOwnWorkout || participantLoading}
+                title={isParticipant ? 'Remove yourself from this workout' : 'I did this too!'}
+              >
+                <Users size={18} style={{ color: isParticipant ? 'var(--primary)' : 'inherit' }} />
+              </button>
             </div>
 	    
 	  </div>
@@ -446,19 +537,11 @@ export default function Dashboard() {
   const { toast } = useToast();
   const [feed, setFeed] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [teams, setTeams] = useState([]);
   const [nextRace, setNextRace] = useState(null);
-
-  const loadFeed = () => {
-    setLoading(true);
-    return api.team.feed()
-      .then(setFeed)
-      .catch((err) => {
-        console.error(err);
-        throw err;
-      })
-      .finally(() => setLoading(false));
-  };
+  const loadMoreRef = useRef(null);
 
   useEffect(() => {
     Promise.all([
@@ -467,7 +550,8 @@ export default function Dashboard() {
       api.races.getNext().catch(() => null),
     ])
       .then(([feedData, teamData, raceData]) => {
-        setFeed(feedData);
+        setFeed(feedData.workouts || []);
+        setHasMore(!!feedData.nextCursor);
         setTeams(teamData.teams || []);
         setNextRace(raceData);
       })
@@ -475,10 +559,48 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || feed.length === 0) return;
+    const lastItem = feed[feed.length - 1];
+    const cursor = lastItem?.completed_at || lastItem?.created_at;
+    
+    setLoadingMore(true);
+    try {
+      const data = await api.team.feed(cursor);
+      setFeed(prev => [...prev, ...(data.workouts || [])]);
+      setHasMore(!!data.nextCursor);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, feed]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          loadMore();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loadMore]);
+
   const handleCheer = async (workoutId, message, image) => {
     try {
       await api.cheers.create(workoutId, message, image);
-      loadFeed();
+      setFeed(prev => prev.map(w => 
+        w.id === workoutId 
+          ? { ...w, cheer_count: w.cheer_count + 1 }
+          : w
+      ));
     } catch (err) {
       console.error(err);
       toast(err.message || 'Failed to cheer', 'error');
@@ -524,6 +646,11 @@ export default function Dashboard() {
           currentUserId={session?.user?.id}
         />
       ))}
+      {hasMore && (
+        <div ref={loadMoreRef} style={{ textAlign: 'center', padding: '1rem' }}>
+          {loadingMore && <span style={{ color: 'var(--text-muted)' }}>Loading more...</span>}
+        </div>
+      )}
     </div>
   );
 }

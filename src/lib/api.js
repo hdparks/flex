@@ -67,6 +67,10 @@ export const api = {
     create: (workoutId, content) => request('/comments', { method: 'POST', body: JSON.stringify({ workout_id: workoutId, content }) }),
     delete: (id) => request(`/comments/${id}`, { method: 'DELETE' }),
   },
+  participants: {
+    add: (workoutId) => request('/participants', { method: 'POST', body: JSON.stringify({ workout_id: workoutId }) }),
+    remove: (workoutId) => request(`/participants?workout_id=${workoutId}`, { method: 'DELETE' }),
+  },
   team: {
     get: () => request('/team'),
     create: (name) => request('/team', { method: 'POST', body: JSON.stringify({ name }) }),
@@ -74,7 +78,7 @@ export const api = {
     getByInviteCode: (inviteCode) => request(`/team?invite_code=${inviteCode}`),
     leave: (teamId) => request(`/team?teamId=${teamId}&action=leave`, { method: 'DELETE' }),
     disband: (teamId) => request(`/team?teamId=${teamId}`, { method: 'DELETE' }),
-    feed: () => request('/team?feed=true'),
+    feed: (cursor) => request(`/team?feed=true${cursor ? `&cursor=${cursor}` : ''}`),
   },
   push: {
     getPublicKey: () => request('/push'),
