@@ -18,8 +18,8 @@ export const patchNotes: Release[] = [
     changes: [
       { type: 'new', text: 'Added date filter to the feed. Filter by Today, This Week, This Month, or All Time.'},
       { type: 'new', text: 'See who cheered your workout! Click on the cheers to see a list of everyone who cheered and what they said.'},
-      { type: 'new', text: 'Click on workout photos to view them full-screen.'},
-      { type: 'fix', text: 'Workouts you join as a participant now appear in your workout history.'},
+      { type: 'improvement', text: 'Click on workout photos to view them full-screen.'},
+      { type: 'fix', text: 'Workouts you join as a participant now appear in your workout history and count toward your total minutes.'},
     ]
   },
   {
