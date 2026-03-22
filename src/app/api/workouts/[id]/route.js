@@ -58,6 +58,8 @@ export async function DELETE(request, { params }) {
 
     await db.transaction(async () => {
       await db.prepare('DELETE FROM cheers WHERE workout_id = ?').run(id);
+      await db.prepare('DELETE FROM workout_participants WHERE workout_id = ?').run(id);
+      await db.prepare('DELETE FROM comments WHERE workout_id = ?').run(id);
       await db.prepare('DELETE FROM workouts WHERE id = ?').run(id);
     });
     
