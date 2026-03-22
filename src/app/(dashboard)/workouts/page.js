@@ -1,218 +1,20 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { api } from '../../../lib/api';
-import { toLocalDatetimeInput, fromLocalDatetimeInput } from '../../../lib/dateUtils';
-import { useToast } from '../../../components/ToastProvider';
+import { api } from '@/lib/api';
+import { useSession } from 'next-auth/react';
+import { useToast } from '@/components/ToastProvider';
 import Link from 'next/link';
-import { WORKOUT_TYPES } from '../../../lib/constants';
-import { TrashIcon } from '../../../components/TrashIcon';
-
-function WorkoutCard({ workout, onUpdate, onDelete, toast, canEdit = true }) {
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({
-    type: workout.type,
-    title: workout.title,
-    description: workout.description || '',
-    duration_minutes: workout.duration_minutes || '',
-    completed_at: toLocalDatetimeInput(workout.completed_at || workout.created_at)
-  });
-  const [saving, setSaving] = useState(false);
-  const [imagePreview, setImagePreview] = useState(workout.image || null);
-  const [imageFile, setImageFile] = useState(null);
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-        setImageFile(file);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const data = {
-        ...form,
-        completed_at: fromLocalDatetimeInput(form.completed_at),
-        duration_minutes: form.duration_minutes ? parseInt(form.duration_minutes) : null,
-      };
-      if (imageFile) {
-        data.image = imagePreview;
-      } else if (!imagePreview && workout.image) {
-        data.image = null;
-      }
-      await onUpdate(workout.id, data);
-      setEditing(false);
-    } catch (err) {
-      toast(err.message, 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!confirm('Delete this workout?')) return;
-    try {
-      await onDelete(workout.id);
-    } catch (err) {
-      toast(err.message, 'error');
-    }
-  };
-
-  if (editing) {
-    return (
-      <div className="card">
-        <div className="form-group">
-          <label className="label">Type</label>
-          <select
-            className="input"
-            value={form.type}
-            onChange={(e) => setForm({ ...form, type: e.target.value })}
-          >
-            {WORKOUT_TYPES.map((t) => (
-              <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-            ))}
-          </select>
-        </div>
-        <div className="form-group">
-          <label className="label">Title</label>
-          <input
-            type="text"
-            className="input"
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-          />
-        </div>
-        <div className="form-group">
-          <label className="label">Description</label>
-          <textarea
-            className="input"
-            rows={2}
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-          />
-        </div>
-        <div className="form-group">
-          <label className="label">Photo</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <label className="btn btn-secondary" style={{ cursor: 'pointer', padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
-              Choose Image
-              <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
-            </label>
-            {imagePreview && (
-              <div style={{ position: 'relative' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={imagePreview} alt="Preview" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '0.5rem' }} />
-                <button
-                  type="button"
-                  onClick={() => { setImagePreview(null); setImageFile(null); }}
-                  style={{
-                    position: 'absolute',
-                    top: '-6px',
-                    right: '-6px',
-                    width: '20px',
-                    height: '20px',
-                    borderRadius: '50%',
-                    background: 'var(--error)',
-                    border: 'none',
-                    color: 'white',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="form-group">
-          <label className="label">Duration (min)</label>
-          <input
-            type="number"
-            className="input"
-            value={form.duration_minutes}
-            onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })}
-          />
-        </div>
-        <div className="form-group">
-          <label className="label">Date & Time</label>
-          <input
-            type="datetime-local"
-            className="input"
-            value={form.completed_at}
-            onChange={(e) => setForm({ ...form, completed_at: e.target.value })}
-          />
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setEditing(false)} disabled={saving}>
-            Cancel
-          </button>
-          <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving...' : 'Save'}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ flex: 1 }}>
-          <span className="workout-type">{workout.type}</span>
-          <h3 style={{ marginTop: '0.5rem' }}>{workout.title}</h3>
-          {workout.description && (
-            <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem', fontSize: '0.875rem' }}>
-              {workout.description}
-            </p>
-          )}
-          {workout.image && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={workout.image} alt="Workout" style={{ width: '100%', borderRadius: '0.5rem', marginTop: '0.5rem', maxHeight: '200px', objectFit: 'cover' }} />
-          )}
-        </div>
-        {canEdit && (
-          <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '0.5rem' }}>
-            <button className="btn-icon" onClick={() => setEditing(true)} title="Edit">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-              </svg>
-            </button>
-            <button className="btn-icon btn-danger" onClick={handleDelete} title="Delete">
-              <TrashIcon />
-            </button>
-          </div>
-        )}
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem' }}>
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-          {new Date(workout.completed_at || workout.created_at).toLocaleDateString()}
-        </div>
-        {workout.duration_minutes && (
-          <span style={{ color: 'var(--primary)', fontWeight: '600', fontSize: '0.875rem' }}>
-            {workout.duration_minutes}m
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
+import { WorkoutCard } from '@/components/WorkoutCard';
+import { WorkoutEditModal } from '@/components/WorkoutEditModal';
 
 export default function Workouts() {
+  const { data: session } = useSession();
   const { toast } = useToast();
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('my');
+  const [editingWorkout, setEditingWorkout] = useState(null);
 
   const loadWorkouts = (filterType) => {
     setLoading(true);
@@ -291,12 +93,20 @@ export default function Workouts() {
           <WorkoutCard
             key={workout.id}
             workout={workout}
-            onUpdate={handleUpdate}
-            onDelete={handleDelete}
-            toast={toast}
-            canEdit={filter === 'my'}
+            currentUserId={session?.user?.id}
+            onEdit={filter === 'my' ? (w) => setEditingWorkout(w) : null}
+            onDelete={filter === 'my' ? handleDelete : null}
           />
         ))
+      )}
+
+      {editingWorkout && (
+        <WorkoutEditModal
+          workout={editingWorkout}
+          onSave={handleUpdate}
+          onDelete={handleDelete}
+          onClose={() => setEditingWorkout(null)}
+        />
       )}
     </div>
   );
