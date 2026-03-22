@@ -7,10 +7,19 @@ import { useSession } from 'next-auth/react';
 import { ImagePlus, Smile, CirclePlus, Users } from 'lucide-react';
 import { useToast } from '@/components/ToastProvider';
 import { TrashIcon } from '@/components/TrashIcon';
+import type { Workout } from '@/lib/types';
+
+interface WorkoutCardProps {
+  workout: Workout;
+  currentUserId?: string;
+  onCheer?: (workoutId: string, message: string | null, image: string | null) => Promise<void>;
+  onDelete?: (workoutId: string) => Promise<void>;
+  onEdit?: (workout: Workout) => void;
+}
 
 const EMOJIS = ['🔥', '💪', '👏', '❤️', '🎉', '⭐', '🚀', '💯'];
 
-function CheerButton({ workoutId, onCheer, disabled }) {
+function CheerButton({ workoutId, onCheer, disabled }: { workoutId: string; onCheer?: (workoutId: string, message: string | null, image: string | null) => Promise<void>; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
@@ -203,7 +212,7 @@ function CheerButton({ workoutId, onCheer, disabled }) {
   );
 }
 
-export function WorkoutCard({ workout, currentUserId, onCheer, onDelete, onEdit }) {
+export function WorkoutCard({ workout, currentUserId, onCheer, onDelete, onEdit }: WorkoutCardProps) {
   const { data: session } = useSession();
   const { toast } = useToast();
   const [comments, setComments] = useState([]);

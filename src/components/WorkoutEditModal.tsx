@@ -3,25 +3,41 @@ import { useState } from 'react';
 import { WORKOUT_TYPES } from '@/lib/constants';
 import { toLocalDatetimeInput, fromLocalDatetimeInput } from '@/lib/dateUtils';
 import { TrashIcon } from '@/components/TrashIcon';
+import type { Workout } from '@/lib/types';
 
-export function WorkoutEditModal({ workout, onSave, onDelete, onClose }) {
-  const [form, setForm] = useState({
+interface WorkoutEditModalProps {
+  workout: Workout;
+  onSave: (id: string, data: Partial<Workout>) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  onClose: () => void;
+}
+
+interface WorkoutFormData {
+  type: string;
+  title: string;
+  description: string;
+  duration_minutes: string;
+  completed_at: string;
+}
+
+export function WorkoutEditModal({ workout, onSave, onDelete, onClose }: WorkoutEditModalProps) {
+  const [form, setForm] = useState<WorkoutFormData>({
     type: workout.type,
     title: workout.title,
     description: workout.description || '',
-    duration_minutes: workout.duration_minutes || '',
+    duration_minutes: workout.duration_minutes?.toString() || '',
     completed_at: toLocalDatetimeInput(workout.completed_at || workout.created_at)
   });
   const [saving, setSaving] = useState(false);
-  const [imagePreview, setImagePreview] = useState(workout.image || null);
-  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(workout.image || null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result);
+        setImagePreview(reader.result as string);
         setImageFile(file);
       };
       reader.readAsDataURL(file);
@@ -31,13 +47,13 @@ export function WorkoutEditModal({ workout, onSave, onDelete, onClose }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const data = {
+      const data: Partial<Workout> = {
         ...form,
         completed_at: fromLocalDatetimeInput(form.completed_at),
         duration_minutes: form.duration_minutes ? parseInt(form.duration_minutes) : null,
       };
       if (imageFile) {
-        data.image = imagePreview;
+        data.image = imagePreview ?? undefined;
       } else if (!imagePreview && workout.image) {
         data.image = null;
       }
