@@ -541,11 +541,12 @@ export default function Dashboard() {
   const [hasMore, setHasMore] = useState(true);
   const [teams, setTeams] = useState([]);
   const [nextRace, setNextRace] = useState(null);
+  const [period, setPeriod] = useState('all');
   const loadMoreRef = useRef(null);
 
   useEffect(() => {
     Promise.all([
-      api.team.feed(),
+      api.team.feed(null, period),
       api.team.get(),
       api.races.getNext().catch(() => null),
     ])
@@ -557,7 +558,7 @@ export default function Dashboard() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [period]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore || feed.length === 0) return;
@@ -566,7 +567,7 @@ export default function Dashboard() {
     
     setLoadingMore(true);
     try {
-      const data = await api.team.feed(cursor);
+      const data = await api.team.feed(cursor, period);
       setFeed(prev => [...prev, ...(data.workouts || [])]);
       setHasMore(!!data.nextCursor);
     } catch (err) {
@@ -574,7 +575,7 @@ export default function Dashboard() {
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, hasMore, feed]);
+  }, [loadingMore, hasMore, feed, period]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -635,9 +636,29 @@ export default function Dashboard() {
       {nextRace && (
         <CountdownTimer raceDate={nextRace.race_date} raceName={nextRace.name} />
       )}
-      <h2 style={{ marginBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-        Team Activity
-      </h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h2 style={{ color: 'var(--text-muted)', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>
+          Team Activity
+        </h2>
+        <select
+          value={period}
+          onChange={(e) => setPeriod(e.target.value)}
+          style={{
+            padding: '0.25rem 0.5rem',
+            borderRadius: '0.375rem',
+            border: '1px solid var(--border)',
+            background: 'var(--surface)',
+            color: 'var(--text)',
+            fontSize: '0.875rem',
+            cursor: 'pointer'
+          }}
+        >
+          <option value="all">All Time</option>
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+        </select>
+      </div>
       {feed.map((item) => (
         <WorkoutCard
           key={item.id}

@@ -18,11 +18,14 @@ export async function GET(request) {
     if (searchParams.get('my') === 'true') {
       const workouts = await db.prepare(`
         SELECT w.*, 
-          (SELECT COUNT(*) FROM cheers WHERE workout_id = w.id) as cheer_count
+          (SELECT COUNT(*) FROM cheers WHERE workout_id = w.id) as cheer_count,
+          (SELECT COUNT(*) FROM workout_participants WHERE workout_id = w.id) as participant_count,
+          EXISTS(SELECT 1 FROM workout_participants WHERE workout_id = w.id AND user_id = ?) as is_participant
         FROM workouts w
         WHERE w.user_id = ?
+           OR w.id IN (SELECT workout_id FROM workout_participants WHERE user_id = ?)
         ORDER BY COALESCE(w.completed_at, w.created_at) DESC
-      `).all(userId);
+      `).all(userId, userId, userId);
 
       return NextResponse.json(workouts);
     }
