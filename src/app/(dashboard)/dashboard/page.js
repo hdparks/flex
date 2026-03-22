@@ -211,6 +211,7 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
   const [showAll, setShowAll] = useState(false);
   const [showInput, setShowInput] = useState(false);
   const [showAllCheers, setShowAllCheers] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState(null);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -383,7 +384,12 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
 	      </p>
 	      {workout.image && (
 	        // eslint-disable-next-line @next/next/no-img-element
-	        <img src={workout.image} alt="Workout" style={{ width: '100%', borderRadius: '0.5rem', marginTop: '0.5rem', maxHeight: '300px', objectFit: 'cover' }} />
+	        <img 
+	          src={workout.image} 
+	          alt="Workout" 
+	          style={{ width: '100%', borderRadius: '0.5rem', marginTop: '0.5rem', maxHeight: '300px', objectFit: 'cover', cursor: 'pointer' }}
+	          onClick={() => setLightboxImage(workout.image)}
+	        />
 	      )}
 	    </div>
             <div style={{ display: 'flex', alignSelf: 'end', alignItems: 'center', gap: '0.5rem', background: 'var(--surface-light)', padding: '0.25rem 0.5rem', borderRadius: '1rem', flexShrink: 0 }}>
@@ -567,6 +573,58 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
               Add a comment
             </button>
           )}
+        </div>
+      )}
+      {lightboxImage && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.9)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            cursor: 'pointer',
+          }}
+          onClick={() => setLightboxImage(null)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightboxImage}
+            alt="Preview"
+            style={{
+              maxWidth: '90%',
+              maxHeight: '90%',
+              objectFit: 'contain',
+              borderRadius: '0.5rem',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setLightboxImage(null)}
+            style={{
+              position: 'absolute',
+              top: '1rem',
+              right: '1rem',
+              background: 'rgba(255,255,255,0.2)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              color: 'white',
+              fontSize: '1.5rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            ×
+          </button>
         </div>
       )}
     </div>
