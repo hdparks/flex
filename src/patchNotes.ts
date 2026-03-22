@@ -16,14 +16,11 @@ export const patchNotes: Release[] = [
     version: '0.0.8',
     date: '2026-03-22',
     changes: [
-      { type: 'improvement', text: 'Comment input now shows by default to encourage interaction.'},
       { type: 'improvement', text: 'Moved action icons (cheer, join, delete) below workout card for better layout.'},
+      { type: 'improvement', text: 'Comment input now shows by default.'},
       { type: 'new', text: 'Unified workout card component across Feed, Workouts, and Profile pages.'},
       { type: 'new', text: 'Added edit modal for workouts - click the pencil icon to edit.'},
-      { type: 'fix', text: 'Fixed 500 error when deleting workouts (properly cleans up related data).'},
-      { type: 'fix', text: 'Fixed workouts page showing empty avatar - now displays user profile picture.'},
-      { type: 'fix', text: 'Fixed participant data not loading on workouts page.'},
-      { type: 'fix', text: 'Fixed avatar disappearing after editing a workout.'},
+      { type: 'fix', text: 'Cheers are now displayed immediately, no longer requires reload to view.'},
     ]
   },
   {

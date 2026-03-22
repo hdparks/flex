@@ -71,10 +71,14 @@ export default function Dashboard() {
 
   const handleCheer = async (workoutId, message, image) => {
     try {
-      await api.cheers.create(workoutId, message, image);
+      const cheer = await api.cheers.create(workoutId, message, image);
       setFeed(prev => prev.map(w => 
         w.id === workoutId 
-          ? { ...w, cheer_count: w.cheer_count + 1 }
+          ? { 
+              ...w, 
+              cheer_count: (w.cheer_count || 0) + 1,
+              cheers: [...(w.cheers || []), cheer]
+            }
           : w
       ));
     } catch (err) {

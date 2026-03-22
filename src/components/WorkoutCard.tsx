@@ -89,7 +89,6 @@ function CheerButton({ workoutId, onCheer, disabled }: { workoutId: string; onCh
       ctx.drawImage(videoRef.current, 0, 0);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
       setCapturedImage(dataUrl);
-      stopCamera();
     }
   };
 
