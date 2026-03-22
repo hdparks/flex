@@ -210,6 +210,7 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
   const [comments, setComments] = useState([]);
   const [showAll, setShowAll] = useState(false);
   const [showInput, setShowInput] = useState(false);
+  const [showAllCheers, setShowAllCheers] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -406,31 +407,71 @@ function WorkoutCard({ workout, onCheer, currentUserId, onRefresh }) {
                 </span>
               )}
               {workout.cheers?.length > 0 && (
-                <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '0.5rem' }}>
-                  {workout.cheers.slice(0, 5).map((cheer, i) => (
-                    <div
-                      key={cheer.id}
-                      style={{
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '50%',
-                        overflow: 'hidden',
-                        border: '2px solid var(--surface-light)',
-                        marginLeft: i > 0 ? '-8px' : 0,
-                        background: cheer.image ? `url(${cheer.image}) center/cover` : 'transparent',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: cheer.image ? '0' : '1.05rem',
-                      }}
-                    >
-                      {!cheer.image && (cheer.message || '👏')}
+                <div style={{ position: 'relative' }}>
+                  <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '0.5rem' }}>
+                    {workout.cheers.slice(0, 5).map((cheer, i) => (
+                      <div
+                        key={cheer.id}
+                        title={cheer.username ? `${cheer.username}: ${cheer.message || '👏'}` : (cheer.message || '👏')}
+                        style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          overflow: 'hidden',
+                          border: '2px solid var(--surface-light)',
+                          marginLeft: i > 0 ? '-8px' : 0,
+                          background: cheer.image ? `url(${cheer.image}) center/cover` : 'transparent',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: cheer.image ? '0' : '1.05rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {!cheer.image && (cheer.message || '👏')}
+                      </div>
+                    ))}
+                    {workout.cheer_count > 5 && (
+                      <button
+                        onClick={() => setShowAllCheers(!showAllCheers)}
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          marginLeft: '0.25rem',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: 0,
+                        }}
+                      >
+                        +{workout.cheer_count - 5}
+                      </button>
+                    )}
+                  </div>
+                  {showAllCheers && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: 0,
+                      marginTop: '0.5rem',
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '0.5rem',
+                      padding: '0.75rem',
+                      minWidth: '200px',
+                      zIndex: 100,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                        Cheers
+                      </div>
+                      {workout.cheers.map((cheer) => (
+                        <div key={cheer.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                          <span style={{ fontSize: '1rem' }}>{cheer.image ? '📷' : (cheer.message || '👏')}</span>
+                          <span style={{ fontSize: '0.875rem' }}>{cheer.username}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                  {workout.cheer_count > 5 && (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.25rem' }}>
-                      +{workout.cheer_count - 5}
-                    </span>
                   )}
                 </div>
               )}
