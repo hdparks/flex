@@ -3,8 +3,9 @@
 import { config } from 'dotenv';
 config({ path: '.env.local' });
 
-import { createClient } from '@libsql/client';
-import { createSession, runBugFix, getClient } from '../src/lib/opencode-service.js';
+import { createClient, type Client } from '@libsql/client';
+// @ts-expect-error - tsx resolves .mts extensions
+import { createSession, runBugFix, getClient } from '../src/lib/opencode-service.mts';
 import * as github from '../src/lib/github-service.js';
 
 const POLL_INTERVAL_MS = 2 * 60 * 1000;
@@ -19,22 +20,32 @@ if (!TURSO_URL || !TURSO_TOKEN) {
   process.exit(1);
 }
 
-const db = createClient({
+const db: Client = createClient({
   url: TURSO_URL,
   authToken: TURSO_TOKEN,
 });
 
-async function getPendingBugs() {
-  const result = await db.execute({
-    sql: `SELECT * FROM bug_reports WHERE status in ('open', 'pending') ORDER BY created_at ASC LIMIT 1`,
-    args: [],
-  });
-  return result.rows;
+interface BugReport {
+  id: string;
+  description: string;
+  severity: string;
 }
 
-async function updateBugStatus(bugId, status, extra = {}) {
-  const updates = ['status = ?', 'updated_at = CURRENT_TIMESTAMP'];
-  const args = [status];
+async function getPendingBugs(): Promise<BugReport[]> {
+  const result = await db.execute({
+    sql: `SELECT * FROM bug_reports WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1`,
+    args: [],
+  });
+  return result.rows as unknown as BugReport[];
+}
+
+async function updateBugStatus(
+  bugId: string,
+  status: string,
+  extra: { opencode_session_id?: string | null; pr_url?: string; error_message?: string } = {}
+): Promise<void> {
+  const updates: string[] = ['status = ?', 'updated_at = CURRENT_TIMESTAMP'];
+  const args: (string | null)[] = [status];
 
   if (extra.opencode_session_id !== undefined) {
     updates.push('opencode_session_id = ?');
@@ -57,7 +68,7 @@ async function updateBugStatus(bugId, status, extra = {}) {
   });
 }
 
-async function processBug(bug) {
+async function processBug(bug: BugReport, abort: AbortController): Promise<void> {
   console.log('\n' + '='.repeat(50));
   console.log(`[Processor] Processing bug: ${bug.id}`);
   console.log(`[Processor] Description: ${bug.description.slice(0, 100)}...`);
@@ -68,25 +79,17 @@ async function processBug(bug) {
     opencode_session_id: null,
   });
 
-  let session = null;
+  let session: { id: string } | null = null;
   try {
     console.log('[Processor] Creating OpenCode session...');
-    session = await createSession(
-      `Fix bug: ${bug.id.slice(0, 8)}`,
-      DIRECTORY
-    );
+    session = await createSession(`Fix bug: ${bug.id.slice(0, 8)}`, DIRECTORY);
 
     await updateBugStatus(bug.id, 'in_progress', {
       opencode_session_id: session.id,
     });
 
     console.log('[Processor] Sending bug fix prompt...');
-    const result = await runBugFix(
-      session.id,
-      bug.description,
-      bug.severity,
-      DIRECTORY
-    );
+    const result = await runBugFix(session.id, bug.description, bug.severity, DIRECTORY, abort.signal);
 
     if (!result.completed) {
       console.error('[Processor] Session did not complete:', result.error);
@@ -120,11 +123,7 @@ async function processBug(bug) {
     }
 
     console.log('[Processor] Creating PR...');
-    const pr = await github.createBugFixPR(
-      bug.id,
-      bug.description,
-      bug.severity
-    );
+    const pr = await github.createBugFixPR(bug.id, bug.description, bug.severity);
 
     if (pr) {
       await updateBugStatus(bug.id, 'ready_for_review', {
@@ -137,15 +136,16 @@ async function processBug(bug) {
       });
     }
   } catch (err) {
-    console.error('[Processor] Error processing bug:', err.message);
+    const error = err as Error;
+    console.error('[Processor] Error processing bug:', error.message);
     await github.resetToMain();
     await updateBugStatus(bug.id, 'needs_manual_review', {
-      error_message: err.message,
+      error_message: error.message,
     });
   }
 }
 
-async function main() {
+async function main(): Promise<void> {
   console.log('='.repeat(50));
   console.log('Flex Bug Processor Starting');
   console.log('='.repeat(50));
@@ -163,9 +163,12 @@ async function main() {
 
   let running = true;
   let processing = false;
+  let shuttingDown = false;
   const abort = new AbortController();
 
-  const shutdown = () => {
+  const shutdown = (): void => {
+    if (shuttingDown) return;
+    shuttingDown = true;
     console.log('\n[Processor] Shutting down...');
     running = false;
     abort.abort();
@@ -184,19 +187,20 @@ async function main() {
           console.log(`\n[Processor] Found ${pendingBugs.length} pending bug(s)`);
           for (const bug of pendingBugs) {
             if (!running) break;
-            await processBug(bug);
+            await processBug(bug, abort);
           }
         } else {
           console.log(`[Processor] No pending bugs, waiting...`);
         }
       } catch (err) {
-        console.error('[Processor] Error:', err.message);
+        const error = err as Error;
+        console.error('[Processor] Error:', error.message);
       }
       processing = false;
     }
 
     try {
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve) => {
         const timeout = setTimeout(() => resolve(), POLL_INTERVAL_MS);
         abort.signal.addEventListener('abort', () => {
           clearTimeout(timeout);
