@@ -52,16 +52,31 @@ export async function GET(request) {
 
       const placeholders = teamMembers.map(() => '?').join(',');
       
+      const cursor = searchParams.get('cursor');
+      const limit = 10;
+      
+      let dateFilter = '';
+      const params = [...teamMembers];
+      
+      if (cursor) {
+        dateFilter = `AND COALESCE(w.completed_at, w.created_at) < ?`;
+        params.push(cursor);
+      }
+      
       const workouts = await db.prepare(`
         SELECT w.user_id AS userId, w.id, w.type, w.title, w.description, w.duration_minutes, w.completed_at, w.image, w.created_at, 
           u.username, u.avatar_url, 'workout' as type,
           (SELECT COUNT(*) FROM cheers c WHERE c.workout_id = w.id) as cheer_count
         FROM workouts w
         JOIN users u ON w.user_id = u.id
-        WHERE w.user_id IN (${placeholders})
+        WHERE w.user_id IN (${placeholders}) ${dateFilter}
         ORDER BY COALESCE(w.completed_at, w.created_at) DESC
-        LIMIT 30
-      `).all(...teamMembers);
+        LIMIT ?
+      `).all(...params, limit);
+
+      const nextCursor = workouts.length === limit 
+        ? workouts[workouts.length - 1].completed_at || workouts[workouts.length - 1].created_at 
+        : null;
 
       const workoutIds = workouts.map(w => w.id);
       let cheersMap = {};
@@ -82,12 +97,31 @@ export async function GET(request) {
         }, {});
       }
 
+      let participantsMap = {};
+      if (workoutIds.length > 0) {
+        const participantsPlaceholders = workoutIds.map(() => '?').join(',');
+        const participants = await db.prepare(`
+          SELECT p.*, u.username, u.avatar_url
+          FROM workout_participants p
+          JOIN users u ON p.user_id = u.id
+          WHERE p.workout_id IN (${participantsPlaceholders})
+          ORDER BY p.created_at ASC
+        `).all(...workoutIds);
+        
+        participantsMap = participants.reduce((acc, p) => {
+          if (!acc[p.workout_id]) acc[p.workout_id] = [];
+          acc[p.workout_id].push(p);
+          return acc;
+        }, {});
+      }
+
       const workoutsWithCheers = workouts.map(w => ({
         ...w,
         cheers: cheersMap[w.id] || [],
+        participants: participantsMap[w.id] || [],
       }));
 
-      return NextResponse.json(workoutsWithCheers);
+      return NextResponse.json({ workouts: workoutsWithCheers, nextCursor });
     }
 
     const memberships = await db.prepare(`
