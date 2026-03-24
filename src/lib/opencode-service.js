@@ -1,21 +1,51 @@
-import { createOpencode, createOpencodeClient } from '@opencode-ai/sdk';
+import { createOpencodeClient } from '@opencode-ai/sdk';
+import { spawn } from 'child_process';
+
+/**
+ * @typedef {Object} Session
+ * @property {string} id
+ * @property {string} title
+ * @property {string} directory
+ */
+
+/**
+ * @typedef {Object} SessionStatus
+ * @property {'idle' | 'retry' | 'busy'} type
+ * @property {number} [attempt]
+ * @property {string} [message]
+ * @property {number} [next]
+ */
+
+/**
+ * @typedef {Object} SessionCompletionResult
+ * @property {boolean} completed
+ * @property {string} [sessionId]
+ * @property {string} [error]
+ */
+
+/**
+ * @typedef {Object} SendPromptOptions
+ * @property {string} [model]
+ */
 
 let client = null;
 let serverProcess = null;
 
 const DEFAULT_MODEL = process.env.OPENCODE_MODEL || 'opencode/big-pickle';
-
 const SERVER_URL = process.env.OPENCODE_SERVER_URL || 'http://localhost:4096';
 const SERVER_PASSWORD = process.env.OPENCODE_SERVER_PASSWORD;
-
 const SESSION_TIMEOUT_MS = 10 * 60 * 1000;
 const POLL_INTERVAL_MS = 5000;
 
-async function getClient() {
-  console.log('getting opencode client')
+/**
+ * @returns {Promise<import('@opencode-ai/sdk').OpencodeClient>}
+ */
+export async function getClient() {
+  console.log('getting opencode client');
   if (client) return client;
 
-  console.log('looking for opencode server at', SERVER_URL)
+  console.log('looking for opencode server at', SERVER_URL);
+  /** @type {{ baseUrl: string, headers?: { Authorization: string } }} */
   const config = {
     baseUrl: SERVER_URL,
   };
@@ -28,9 +58,8 @@ async function getClient() {
 
   try {
     client = createOpencodeClient(config);
-
-    const health = await client.global.health();
-    console.log('[OpenCode] Connected to server:', health.data.version);
+    const project = await client.project.current();
+    console.log('[OpenCode] Connected to server:', project.data?.id);
     return client;
   } catch (err) {
     console.error('[OpenCode] Failed to connect to server:', err.message);
@@ -38,6 +67,9 @@ async function getClient() {
   }
 }
 
+/**
+ * @returns {Promise<void>}
+ */
 export async function startServer() {
   if (serverProcess) {
     console.log('[OpenCode] Server already running');
@@ -45,18 +77,17 @@ export async function startServer() {
   }
 
   console.log('[OpenCode] Starting server...');
-  const { spawn } = await import('child_process');
 
   serverProcess = spawn('opencode', ['serve', '--port', '4096'], {
     stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env },
   });
 
-  serverProcess.stdout.on('data', (data) => {
+  serverProcess.stdout?.on('data', (data) => {
     process.stdout.write('[OpenCode] ' + data);
   });
 
-  serverProcess.stderr.on('data', (data) => {
+  serverProcess.stderr?.on('data', (data) => {
     process.stderr.write('[OpenCode] ' + data);
   });
 
@@ -65,19 +96,24 @@ export async function startServer() {
     const checkInterval = setInterval(async () => {
       try {
         const c = createOpencodeClient({ baseUrl: SERVER_URL });
-        await c.global.health();
+        await c.project.current();
         clearInterval(checkInterval);
         clearTimeout(timeout);
         client = c;
         resolve();
-      } catch {}
+      } catch {
+        // Server not ready yet
+      }
     }, 1000);
   });
 
   console.log('[OpenCode] Server started');
 }
 
-export async function stopServer() {
+/**
+ * @returns {void}
+ */
+export function stopServer() {
   if (serverProcess) {
     serverProcess.kill();
     serverProcess = null;
@@ -86,12 +122,19 @@ export async function stopServer() {
   }
 }
 
+/**
+ * @param {string} title
+ * @param {string} directory
+ * @returns {Promise<Session>}
+ */
 export async function createSession(title, directory) {
   const c = await getClient();
 
   const session = await c.session.create({
     body: {
       title,
+    },
+    query: {
       directory,
     },
   });
@@ -100,6 +143,12 @@ export async function createSession(title, directory) {
   return session.data;
 }
 
+/**
+ * @param {string} sessionId
+ * @param {Array<{type: 'text', text: string}>} parts
+ * @param {SendPromptOptions} [options]
+ * @returns {Promise<unknown>}
+ */
 export async function sendPrompt(sessionId, parts, options = {}) {
   const c = await getClient();
 
@@ -114,79 +163,115 @@ export async function sendPrompt(sessionId, parts, options = {}) {
         providerID: DEFAULT_MODEL.split('/')[0],
         modelID: DEFAULT_MODEL,
       },
-      outputFormat: options.format,
     },
   });
 
   return result.data;
 }
 
-export async function getSessionStatus(sessionId) {
+/**
+ * @param {string} sessionId
+ * @param {string} directory
+ * @returns {Promise<SessionStatus|null>}
+ */
+export async function getSessionStatus(sessionId, directory) {
   const c = await getClient();
 
-  const session = await c.session.get({
-    path: { id: sessionId },
+  const statusResult = await c.session.status({
+    query: { directory },
   });
 
-  return session.data;
+  return statusResult.data[sessionId] || null;
 }
 
-export async function abortSession(sessionId) {
+/**
+ * @param {string} sessionId
+ * @param {string} directory
+ * @returns {Promise<boolean>}
+ */
+export async function abortSession(sessionId, directory) {
   const c = await getClient();
 
   const result = await c.session.abort({
     path: { id: sessionId },
+    query: { directory },
   });
 
   console.log('[OpenCode] Aborted session:', sessionId);
   return result.data;
 }
 
-export async function waitForSessionCompletion(sessionId, onProgress) {
+/**
+ * @param {string} sessionId
+ * @param {string} directory
+ * @param {(status: SessionStatus|null) => void} [onProgress]
+ * @returns {Promise<SessionCompletionResult>}
+ */
+export async function waitForSessionCompletion(sessionId, directory, onProgress) {
   const startTime = Date.now();
 
   while (Date.now() - startTime < SESSION_TIMEOUT_MS) {
-    const status = await getSessionStatus(sessionId);
+    const status = await getSessionStatus(sessionId, directory);
 
     if (onProgress) {
       onProgress(status);
     }
 
-    if (status.status === 'completed' || status.status === 'finished') {
-      return { completed: true, status };
+    if (!status) {
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+      continue;
     }
 
-    if (status.status === 'error' || status.status === 'aborted') {
-      return { completed: false, status, error: 'Session ended with error' };
+    if (status.type === 'idle' || status.type === 'busy') {
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+      continue;
     }
 
-    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    if (status.type === 'retry') {
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+      continue;
+    }
+
+    return { completed: true, sessionId };
   }
 
-  await abortSession(sessionId);
+  await abortSession(sessionId, directory);
   return { completed: false, error: 'Session timed out' };
 }
 
+/**
+ * @param {string} sessionId
+ * @param {string} bugDescription
+ * @param {string} severity
+ * @param {string} directory
+ * @returns {Promise<SessionCompletionResult>}
+ */
 export async function runBugFix(sessionId, bugDescription, severity, directory) {
   const prompt = buildFixPrompt(bugDescription, severity);
 
   await sendPrompt(sessionId, [{ type: 'text', text: prompt }]);
 
-  const result = await waitForSessionCompletion(sessionId, (status) => {
-    console.log('[OpenCode] Session progress:', status.status, status.title);
+  const result = await waitForSessionCompletion(sessionId, directory, (status) => {
+    console.log('[OpenCode] Session progress:', status?.type || 'unknown');
   });
 
   return result;
 }
 
+/**
+ * @param {string} description
+ * @param {string} severity
+ * @returns {string}
+ */
 function buildFixPrompt(description, severity) {
-  const severityLabel = {
+  const severityMap = {
     low: 'Low priority - nice to fix when convenient',
     medium: 'Medium priority - should be addressed',
     high: 'High priority - important issue',
     critical: 'Critical - breaks core functionality',
     'feature-request': 'Feature request - improvement idea',
-  }[severity] || 'Medium priority';
+  };
+  const severityLabel = severityMap[severity] || 'Medium priority';
 
   return `You're working on a bug fix for a Next.js micro-social media app called "Flex".
 
@@ -209,22 +294,33 @@ function buildFixPrompt(description, severity) {
 `;
 }
 
-export async function listRecentSessions(limit = 10) {
+/**
+ * @param {string} directory
+ * @param {number} [limit]
+ * @returns {Promise<Session[]>}
+ */
+export async function listRecentSessions(directory, limit = 10) {
   const c = await getClient();
 
   const sessions = await c.session.list({
-    query: { maxCount: limit },
+    query: { directory },
   });
 
-  return sessions.data;
+  return sessions.data.slice(0, limit);
 }
 
-export async function getSessionMessages(sessionId) {
+/**
+ * @param {string} sessionId
+ * @param {string} directory
+ * @returns {Promise<Array<{info: unknown, parts: unknown[]}>>}
+ */
+export async function getSessionMessages(sessionId, directory) {
   const c = await getClient();
 
-  const session = await c.session.get({
+  const messages = await c.session.messages({
     path: { id: sessionId },
+    query: { directory },
   });
 
-  return session.data.messages || [];
+  return messages.data;
 }

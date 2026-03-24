@@ -127,7 +127,7 @@ async function getClient() {
       `CREATE INDEX IF NOT EXISTS idx_cheers_workout ON cheers(workout_id)`,
       `CREATE INDEX IF NOT EXISTS idx_comments_workout ON comments(workout_id)`,
       `CREATE INDEX IF NOT EXISTS idx_participants_workout ON workout_participants(workout_id)`,
-      `CREATE INDEX IF NOT EXISTS idx_races_user_date ON races(user_id, race_date)`,
+      `CREATE INDEX IF NOT EXISTS idx_races_team_date ON races(team_id, race_date)`,
       `CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id)`,
       `CREATE UNIQUE INDEX IF NOT EXISTS idx_push_user_endpoint ON push_subscriptions(user_id, endpoint)`,
     ];
@@ -143,14 +143,15 @@ async function getClient() {
     }
 
     const migrations = [
-      `ALTER TABLE bug_reports ADD COLUMN status TEXT DEFAULT 'pending'`,
+      `ALTER TABLE bug_reports ADD COLUMN status TEXT`,
       `ALTER TABLE bug_reports ADD COLUMN opencode_session_id TEXT`,
       `ALTER TABLE bug_reports ADD COLUMN pr_url TEXT`,
       `ALTER TABLE bug_reports ADD COLUMN error_message TEXT`,
-      `ALTER TABLE bug_reports ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`,
+      `ALTER TABLE bug_reports ADD COLUMN updated_at DATETIME`,
     ];
 
     for (const migration of migrations) {
+      console.log("running migrations")
       try {
         await client.execute({ sql: migration, args: [] });
       } catch (err) {

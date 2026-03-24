@@ -4,7 +4,7 @@ import { config } from 'dotenv';
 config({ path: '.env.local' });
 
 import { createClient } from '@libsql/client';
-import * as opencode from '../src/lib/opencode-service.js';
+import { createSession, runBugFix, getClient } from '../src/lib/opencode-service.js';
 import * as github from '../src/lib/github-service.js';
 
 const POLL_INTERVAL_MS = 2 * 60 * 1000;
@@ -26,7 +26,7 @@ const db = createClient({
 
 async function getPendingBugs() {
   const result = await db.execute({
-    sql: `SELECT * FROM bug_reports WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1`,
+    sql: `SELECT * FROM bug_reports WHERE status in ('open', 'pending') ORDER BY created_at ASC LIMIT 1`,
     args: [],
   });
   return result.rows;
@@ -71,7 +71,7 @@ async function processBug(bug) {
   let session = null;
   try {
     console.log('[Processor] Creating OpenCode session...');
-    session = await opencode.createSession(
+    session = await createSession(
       `Fix bug: ${bug.id.slice(0, 8)}`,
       DIRECTORY
     );
@@ -81,7 +81,7 @@ async function processBug(bug) {
     });
 
     console.log('[Processor] Sending bug fix prompt...');
-    const result = await opencode.runBugFix(
+    const result = await runBugFix(
       session.id,
       bug.description,
       bug.severity,
@@ -154,7 +154,7 @@ async function main() {
   console.log('');
 
   try {
-    await opencode.getClient();
+    await getClient();
   } catch (err) {
     console.error('Error: OpenCode server not running');
     console.error('Please run "opencode serve" in another terminal');
@@ -163,10 +163,12 @@ async function main() {
 
   let running = true;
   let processing = false;
+  const abort = new AbortController();
 
   const shutdown = () => {
     console.log('\n[Processor] Shutting down...');
     running = false;
+    abort.abort();
   };
 
   process.on('SIGINT', shutdown);
@@ -181,6 +183,7 @@ async function main() {
         if (pendingBugs.length > 0) {
           console.log(`\n[Processor] Found ${pendingBugs.length} pending bug(s)`);
           for (const bug of pendingBugs) {
+            if (!running) break;
             await processBug(bug);
           }
         } else {
@@ -192,7 +195,17 @@ async function main() {
       processing = false;
     }
 
-    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    try {
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => resolve(), POLL_INTERVAL_MS);
+        abort.signal.addEventListener('abort', () => {
+          clearTimeout(timeout);
+          resolve();
+        });
+      });
+    } catch {
+      // Abort signaled
+    }
   }
 
   console.log('[Processor] Stopped');
