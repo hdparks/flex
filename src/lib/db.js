@@ -103,10 +103,16 @@ async function getClient() {
         user_id TEXT NOT NULL,
         description TEXT NOT NULL,
         severity TEXT DEFAULT 'medium',
+        status TEXT DEFAULT 'pending',
+        opencode_session_id TEXT,
+        pr_url TEXT,
+        error_message TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id)
       )`,
       `CREATE INDEX IF NOT EXISTS idx_bug_reports_user ON bug_reports(user_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_bug_reports_status ON bug_reports(status)`,
       `CREATE INDEX IF NOT EXISTS idx_workouts_user ON workouts(user_id)`,
       `CREATE INDEX IF NOT EXISTS idx_workouts_completed ON workouts(completed_at)`,
       `CREATE INDEX IF NOT EXISTS idx_cheers_workout ON cheers(workout_id)`,
@@ -122,6 +128,24 @@ async function getClient() {
       } catch (err) {
         if (!err.message?.includes('already exists')) {
           console.error('Schema creation error:', err.message);
+        }
+      }
+    }
+
+    const migrations = [
+      `ALTER TABLE bug_reports ADD COLUMN status TEXT DEFAULT 'pending'`,
+      `ALTER TABLE bug_reports ADD COLUMN opencode_session_id TEXT`,
+      `ALTER TABLE bug_reports ADD COLUMN pr_url TEXT`,
+      `ALTER TABLE bug_reports ADD COLUMN error_message TEXT`,
+      `ALTER TABLE bug_reports ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`,
+    ];
+
+    for (const migration of migrations) {
+      try {
+        await client.execute({ sql: migration, args: [] });
+      } catch (err) {
+        if (!err.message?.includes('duplicate column name') && !err.message?.includes('already exists')) {
+          console.error('Migration error:', err.message);
         }
       }
     }

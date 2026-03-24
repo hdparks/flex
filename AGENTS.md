@@ -202,3 +202,50 @@ After completing work, prompt the user to add an entry to `src/patchNotes.ts`:
 ```typescript
 { type: 'new' | 'fix' | 'update' | 'removal', text: 'description', credit?: 'user' }
 ```
+
+## Automated Bug Processor
+
+Flex has an automated bug-fixing system that uses OpenCode to fix bugs reported by users.
+
+### How It Works
+1. User submits bug via the app (stored with `status = 'pending'`)
+2. Bug processor polls database every 2 minutes
+3. Creates OpenCode session with bug details
+4. AI explores code, identifies and fixes the bug
+5. Creates PR with changes for human review
+6. Human merges PR → Vercel deploys
+
+### Running the Bug Processor
+
+**Terminal 1: Start OpenCode server**
+```bash
+opencode serve
+```
+
+**Terminal 2: Run bug processor**
+```bash
+npm run bug-processor
+```
+
+### Bug Status Flow
+- `pending` → New bug reports waiting for processing
+- `in_progress` → OpenCode is actively fixing the bug
+- `ready_for_review` → PR created, waiting for human review
+- `needs_manual_review` → Could not auto-fix, needs human attention
+- `fixed` → Bug has been resolved
+
+### Environment Variables Required
+```bash
+TURSO_DATABASE_URL=libsql://...
+TURSO_AUTH_TOKEN=...
+GITHUB_TOKEN=ghp_...          # Fine-grained PAT with repo write access
+OPENCODE_SERVER_URL=http://localhost:4096
+OPENCODE_SERVER_PASSWORD=     # Optional, if server is protected
+OPENCODE_MODEL=anthropic/claude-sonnet-4-5-20250929
+```
+
+### Safety Limits
+- Max 10 files changed per PR (prevents accidental mass rewrites)
+- 10 minute timeout per OpenCode session
+- Requires PR review before merge
+- Sequential processing (one bug at a time)
