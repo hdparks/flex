@@ -215,37 +215,18 @@ Flex has an automated bug-fixing system that uses OpenCode to fix bugs reported 
 5. Creates PR with changes for human review
 6. Human merges PR → Vercel deploys
 
-### Running the Bug Processor
+### Using the Fix-Bug Skill
 
-**Terminal 1: Start OpenCode server**
-```bash
-opencode serve
-```
+Use the `/fix-bug` skill to investigate and fix bugs from the `bug_reports` table.
 
-**Terminal 2: Run bug processor**
-```bash
-npm run bug-processor
-```
+**Workflow:**
+1. Run `turso db shell flex "SELECT * FROM bug_reports WHERE status = 'open';"` to fetch open bug reports
+2. Use the `fix-bug` skill to investigate the issue
+3. Apply the fix
+4. Manually handle commits and PRs
 
-### Bug Status Flow
-- `pending` → New bug reports waiting for processing
+**Bug Status Flow:**
+- `open` → New bug reports waiting for processing
 - `in_progress` → OpenCode is actively fixing the bug
-- `ready_for_review` → PR created, waiting for human review
+- `addressed` → Bug has been fixed
 - `needs_manual_review` → Could not auto-fix, needs human attention
-- `fixed` → Bug has been resolved
-
-### Environment Variables Required
-```bash
-TURSO_DATABASE_URL=libsql://...
-TURSO_AUTH_TOKEN=...
-GITHUB_TOKEN=ghp_...          # Fine-grained PAT with repo write access
-OPENCODE_SERVER_URL=http://localhost:4096
-OPENCODE_SERVER_PASSWORD=     # Optional, if server is protected
-OPENCODE_MODEL=anthropic/claude-sonnet-4-5-20250929
-```
-
-### Safety Limits
-- Max 10 files changed per PR (prevents accidental mass rewrites)
-- 10 minute timeout per OpenCode session
-- Requires PR review before merge
-- Sequential processing (one bug at a time)

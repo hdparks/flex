@@ -53,6 +53,7 @@ export async function GET(request) {
       const placeholders = teamMembers.map(() => '?').join(',');
       
       const cursor = searchParams.get('cursor');
+      const period = searchParams.get('period');
       const limit = 10;
       
       let dateFilter = '';
@@ -61,6 +62,24 @@ export async function GET(request) {
       if (cursor) {
         dateFilter = `AND COALESCE(w.completed_at, w.created_at) < ?`;
         params.push(cursor);
+      } else if (period && period !== 'all') {
+        const now = new Date();
+        let startDate;
+        
+        if (period === 'today') {
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+        } else if (period === 'week') {
+          const dayOfWeek = now.getDay();
+          const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+          startDate = new Date(now.getFullYear(), now.getMonth(), diff).toISOString();
+        } else if (period === 'month') {
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        }
+        
+        if (startDate) {
+          dateFilter = `AND COALESCE(w.completed_at, w.created_at) >= ?`;
+          params.push(startDate);
+        }
       }
       
       const workouts = await db.prepare(`

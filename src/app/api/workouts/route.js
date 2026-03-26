@@ -17,12 +17,37 @@ export async function GET(request) {
     
     if (searchParams.get('my') === 'true') {
       const workouts = await db.prepare(`
-        SELECT w.*, 
-          (SELECT COUNT(*) FROM cheers WHERE workout_id = w.id) as cheer_count
+        SELECT w.*, u.username, u.avatar_url,
+          (SELECT COUNT(*) FROM cheers WHERE workout_id = w.id) as cheer_count,
+          (SELECT COUNT(*) FROM workout_participants WHERE workout_id = w.id) as participant_count,
+          EXISTS(SELECT 1 FROM workout_participants WHERE workout_id = w.id AND user_id = ?) as is_participant
         FROM workouts w
+        JOIN users u ON w.user_id = u.id
         WHERE w.user_id = ?
+           OR w.id IN (SELECT workout_id FROM workout_participants WHERE user_id = ?)
         ORDER BY COALESCE(w.completed_at, w.created_at) DESC
-      `).all(userId);
+      `).all(userId, userId, userId);
+
+      if (workouts.length > 0) {
+        const workoutIds = workouts.map(w => w.id);
+        const participantsPlaceholders = workoutIds.map(() => '?').join(',');
+        const participants = await db.prepare(`
+          SELECT p.*, u.username, u.avatar_url
+          FROM workout_participants p
+          JOIN users u ON p.user_id = u.id
+          WHERE p.workout_id IN (${participantsPlaceholders})
+        `).all(...workoutIds);
+
+        const participantsMap = participants.reduce((acc, p) => {
+          if (!acc[p.workout_id]) acc[p.workout_id] = [];
+          acc[p.workout_id].push(p);
+          return acc;
+        }, {});
+
+        workouts.forEach(w => {
+          w.participants = participantsMap[w.id] || [];
+        });
+      }
 
       return NextResponse.json(workouts);
     }
@@ -53,6 +78,27 @@ export async function GET(request) {
       WHERE w.user_id IN (${placeholders})
       ORDER BY w.completed_at DESC, w.created_at DESC
     `).all(...teamMembers);
+
+    if (workouts.length > 0) {
+      const workoutIds = workouts.map(w => w.id);
+      const participantsPlaceholders = workoutIds.map(() => '?').join(',');
+      const participants = await db.prepare(`
+        SELECT p.*, u.username, u.avatar_url
+        FROM workout_participants p
+        JOIN users u ON p.user_id = u.id
+        WHERE p.workout_id IN (${participantsPlaceholders})
+      `).all(...workoutIds);
+
+      const participantsMap = participants.reduce((acc, p) => {
+        if (!acc[p.workout_id]) acc[p.workout_id] = [];
+        acc[p.workout_id].push(p);
+        return acc;
+      }, {});
+
+      workouts.forEach(w => {
+        w.participants = participantsMap[w.id] || [];
+      });
+    }
 
     return NextResponse.json(workouts);
   } catch (err) {

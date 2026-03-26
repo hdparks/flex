@@ -11,8 +11,7 @@
     "start": "next start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest",
-    "test:run": "vitest run",
-    "bug-processor": "tsx scripts/bug-processor.mts"
+    "test:run": "vitest run"
   },
   "dependencies": {
     "@libsql/client": "^0.17.2",

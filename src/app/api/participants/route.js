@@ -45,6 +45,10 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 
+    if (workout.user_id === session.user.id) {
+      return NextResponse.json({ error: 'Cannot add yourself to your own workout' }, { status: 400 });
+    }
+
     const existing = await db.prepare(
       'SELECT id FROM workout_participants WHERE workout_id = ? AND user_id = ?'
     ).get(workout_id, session.user.id);

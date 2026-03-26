@@ -13,6 +13,27 @@ export interface Release {
 
 export const patchNotes: Release[] = [
   {
+    version: '0.0.8',
+    date: '2026-03-22',
+    changes: [
+      { type: 'improvement', text: 'Moved action icons (cheer, join, delete) below workout card for better layout.'},
+      { type: 'improvement', text: 'Comment input now shows by default.'},
+      { type: 'new', text: 'Unified workout card component across Feed, Workouts, and Profile pages.'},
+      { type: 'new', text: 'Added edit modal for workouts - click the pencil icon to edit.'},
+      { type: 'fix', text: 'Cheers are now displayed immediately, no longer requires reload to view.'},
+    ]
+  },
+  {
+    version: '0.0.7',
+    date: '2026-03-22',
+    changes: [
+      { type: 'new', text: 'Added date filter to the feed. Filter by Today, This Week, This Month, or All Time.'},
+      { type: 'new', text: 'See who cheered your workout! Click on the cheers to see a list of everyone who cheered and what they said.'},
+      { type: 'improvement', text: 'Click on workout photos to view them full-screen.'},
+      { type: 'fix', text: 'Workouts you join as a participant now appear in your workout history and count toward your total minutes.'},
+    ]
+  },
+  {
     version: '0.0.6',
     date: '2026-03-21',
     changes: [
