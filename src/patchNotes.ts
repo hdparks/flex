@@ -13,6 +13,14 @@ export interface Release {
 
 export const patchNotes: Release[] = [
   {
+    version: '0.0.9',
+    date: '2026-03-25',
+    changes: [
+      { type: 'fix', text: 'You can no longer add yourself as a participant to your own workout to double your total minutes for the workout.'},
+      { type: 'fix', text: 'User profile page now shows workout cards with user avatars and names properly loaded.'},
+    ]
+  },
+  {
     version: '0.0.8',
     date: '2026-03-22',
     changes: [
