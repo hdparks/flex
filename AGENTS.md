@@ -93,12 +93,23 @@ Create shared types in `src/lib/types.ts` for common data shapes:
 - Use named exports for page components
 - Prefer functional components with hooks
 
-```typescript
-// Page component (named export)
-export default function Dashboard() { ... }
+### Popups & Dropdowns
+Use **@floating-ui/react** for all popups, dropdowns, and floating UI elements. It handles edge detection, viewport overflow, and flipping automatically.
 
-// Helper component (can be in same file)
-function WorkoutCard({ workout }: { workout: Workout }) { ... }
+```typescript
+import { useFloating, flip, shift } from '@floating-ui/react';
+
+const { refs, floatingStyles } = useFloating({
+  placement: 'top',
+  middleware: [flip(), shift({ padding: 8 })],
+});
+
+return (
+  <>
+    <button ref={refs.setReference}>Trigger</button>
+    <div ref={refs.setFloating} style={floatingStyles}>Content</div>
+  </>
+);
 ```
 
 ### API Routes
@@ -202,3 +213,31 @@ After completing work, prompt the user to add an entry to `src/patchNotes.ts`:
 ```typescript
 { type: 'new' | 'fix' | 'update' | 'removal', text: 'description', credit?: 'user' }
 ```
+
+## Automated Bug Processor
+
+Flex has an automated bug-fixing system that uses OpenCode to fix bugs reported by users.
+
+### How It Works
+1. User submits bug via the app (stored with `status = 'pending'`)
+2. Bug processor polls database every 2 minutes
+3. Creates OpenCode session with bug details
+4. AI explores code, identifies and fixes the bug
+5. Creates PR with changes for human review
+6. Human merges PR → Vercel deploys
+
+### Using the Fix-Bug Skill
+
+Use the `/fix-bug` skill to investigate and fix bugs from the `bug_reports` table.
+
+**Workflow:**
+1. Run `turso db shell flex "SELECT * FROM bug_reports WHERE status = 'open';"` to fetch open bug reports
+2. Use the `fix-bug` skill to investigate the issue
+3. Apply the fix
+4. Manually handle commits and PRs
+
+**Bug Status Flow:**
+- `open` → New bug reports waiting for processing
+- `in_progress` → OpenCode is actively fixing the bug
+- `addressed` → Bug has been fixed
+- `needs_manual_review` → Could not auto-fix, needs human attention

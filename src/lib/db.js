@@ -112,12 +112,12 @@ async function getClient() {
         user_id TEXT NOT NULL,
         description TEXT NOT NULL,
         severity TEXT DEFAULT 'medium',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        status TEXT DEFAULT 'open',
-        resolved_at DATETIME,
-        resolved_by TEXT,
-        resolution_note TEXT,
+        status TEXT DEFAULT 'pending',
+        opencode_session_id TEXT,
         pr_url TEXT,
+        error_message TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id)
       )`,
       `CREATE INDEX IF NOT EXISTS idx_bug_reports_user ON bug_reports(user_id)`,
@@ -127,7 +127,7 @@ async function getClient() {
       `CREATE INDEX IF NOT EXISTS idx_cheers_workout ON cheers(workout_id)`,
       `CREATE INDEX IF NOT EXISTS idx_comments_workout ON comments(workout_id)`,
       `CREATE INDEX IF NOT EXISTS idx_participants_workout ON workout_participants(workout_id)`,
-      `CREATE INDEX IF NOT EXISTS idx_races_user_date ON races(user_id, race_date)`,
+      `CREATE INDEX IF NOT EXISTS idx_races_team_date ON races(team_id, race_date)`,
       `CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id)`,
       `CREATE UNIQUE INDEX IF NOT EXISTS idx_push_user_endpoint ON push_subscriptions(user_id, endpoint)`,
     ];
@@ -138,6 +138,25 @@ async function getClient() {
       } catch (err) {
         if (!err.message?.includes('already exists')) {
           console.error('Schema creation error:', err.message);
+        }
+      }
+    }
+
+    const migrations = [
+      `ALTER TABLE bug_reports ADD COLUMN status TEXT`,
+      `ALTER TABLE bug_reports ADD COLUMN opencode_session_id TEXT`,
+      `ALTER TABLE bug_reports ADD COLUMN pr_url TEXT`,
+      `ALTER TABLE bug_reports ADD COLUMN error_message TEXT`,
+      `ALTER TABLE bug_reports ADD COLUMN updated_at DATETIME`,
+    ];
+
+    for (const migration of migrations) {
+      console.log("running migrations")
+      try {
+        await client.execute({ sql: migration, args: [] });
+      } catch (err) {
+        if (!err.message?.includes('duplicate column name') && !err.message?.includes('already exists')) {
+          console.error('Migration error:', err.message);
         }
       }
     }

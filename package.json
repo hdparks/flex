@@ -14,8 +14,11 @@
     "test:run": "vitest run"
   },
   "dependencies": {
+    "@floating-ui/react": "^0.27.19",
     "@libsql/client": "^0.17.2",
+    "@opencode-ai/sdk": "^1.0.0",
     "bcryptjs": "^3.0.3",
+    "dotenv": "^16.4.0",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.577.0",
     "next": "^16.1.7",
@@ -36,6 +39,7 @@
     "jsdom": "^29.0.0",
     "playwright": "^1.58.2",
     "sharp": "^0.34.5",
+    "tsx": "^4.21.0",
     "vitest": "^4.1.0"
   }
 }

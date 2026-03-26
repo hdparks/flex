@@ -50,8 +50,11 @@ export async function GET(request, { params }) {
         if (userTeams.length > 0) {
           workouts = await db.prepare(`
             SELECT w.*, 
+              u.avatar_url,
+              u.username,
               (SELECT COUNT(*) FROM cheers WHERE workout_id = w.id) as cheer_count
             FROM workouts w
+            JOIN users u ON w.user_id = u.id
             WHERE w.user_id = ?
             ORDER BY w.completed_at DESC, w.created_at DESC
             LIMIT 20
@@ -61,8 +64,11 @@ export async function GET(request, { params }) {
     } else if (userIsViewer) {
       workouts = await db.prepare(`
         SELECT w.*, 
+          u.avatar_url,
+          u.username,
           (SELECT COUNT(*) FROM cheers WHERE workout_id = w.id) as cheer_count
         FROM workouts w
+        JOIN users u ON w.user_id = u.id
         WHERE w.user_id = ?
         ORDER BY w.completed_at DESC, w.created_at DESC
         LIMIT 20
