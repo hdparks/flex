@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { useFloating, flip, shift } from '@floating-ui/react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { formatRelativeTime } from '@/lib/dateUtils';
@@ -26,10 +27,14 @@ function CheerButton({ workoutId, onCheer, disabled }: { workoutId: string; onCh
   const [videoReady, setVideoReady] = useState(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
-  const popoverRef = useRef(null);
   const timeoutRef = useRef(null);
 
-  const stopCamera = () => {
+  const { refs, floatingStyles, update } = useFloating({
+    placement: 'top',
+    middleware: [flip(), shift({ padding: 8 })],
+  });
+
+  const stopCamera = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -44,19 +49,25 @@ function CheerButton({ workoutId, onCheer, disabled }: { workoutId: string; onCh
     setShowCamera(false);
     setCapturedImage(null);
     setVideoReady(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      update();
+    }
+  }, [open, update]);
 
   useEffect(() => {
     if (!open) return;
     const handleClickOutside = (event) => {
-      if (popoverRef.current && !popoverRef.current.contains(event.target)) {
+      if (refs.floating.current && !refs.floating.current.contains(event.target)) {
         stopCamera();
         setOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [open]);
+  }, [open, refs.floating, stopCamera]);
 
   const handleEmojiClick = async (emoji) => {
     await onCheer(workoutId, emoji, null);
@@ -116,6 +127,7 @@ function CheerButton({ workoutId, onCheer, disabled }: { workoutId: string; onCh
   return (
     <div style={{ position: 'relative' }}>
       <button
+        ref={refs.setReference}
         onClick={() => !disabled && setOpen(!open)}
         className="btn btn-ghost"
         style={{ padding: '0.25rem 0.5rem', position: 'relative', opacity: disabled ? 0.5 : 1 }}
@@ -128,12 +140,9 @@ function CheerButton({ workoutId, onCheer, disabled }: { workoutId: string; onCh
         <CirclePlus strokeWidth={3} size={10} style={{ position: 'absolute', top: 3, right: 3 }} />
       </button>
       {open && (
-        <div ref={popoverRef} style={{
-          position: 'absolute',
-          bottom: '100%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          marginBottom: '0.5rem',
+        // eslint-disable-next-line react-hooks/refs
+        <div ref={refs.setFloating} style={{
+          ...floatingStyles,
           background: 'var(--surface)',
           border: '1px solid var(--border)',
           borderRadius: '0.75rem',
@@ -219,8 +228,12 @@ export function WorkoutCard({ workout, currentUserId, onCheer, onDelete, onEdit 
   const [showInput, setShowInput] = useState(true);
   const [showAllCheers, setShowAllCheers] = useState(false);
   const [lightboxImage, setLightboxImage] = useState(null);
-  const cheersPopoverRef = useRef(null);
   const [newComment, setNewComment] = useState('');
+
+  const { refs: cheersRefs, floatingStyles: cheersStyles, update: updateCheers } = useFloating({
+    placement: 'top',
+    middleware: [flip(), shift({ padding: 8 })],
+  });
   const [submitting, setSubmitting] = useState(false);
   const [loadingComments, setLoadingComments] = useState(false);
   const [participantLoading, setParticipantLoading] = useState(false);
@@ -255,14 +268,14 @@ export function WorkoutCard({ workout, currentUserId, onCheer, onDelete, onEdit 
     if (!showAllCheers) return;
     
     const handleClickOutside = (event) => {
-      if (cheersPopoverRef.current && !cheersPopoverRef.current.contains(event.target)) {
+      if (cheersRefs.floating.current && !cheersRefs.floating.current.contains(event.target)) {
         setShowAllCheers(false);
       }
     };
     
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showAllCheers]);
+  }, [showAllCheers, cheersRefs.floating]);
 
   const handleSubmitComment = async () => {
     if (!newComment.trim()) return;
@@ -421,9 +434,10 @@ export function WorkoutCard({ workout, currentUserId, onCheer, onDelete, onEdit 
                 </span>
               )}
               {workout.cheers?.length > 0 && (
-                <div style={{ position: 'relative' }} ref={cheersPopoverRef}>
+                <div style={{ position: 'relative' }}>
                   <button
-                    onClick={() => setShowAllCheers(!showAllCheers)}
+                    ref={cheersRefs.setReference}
+                    onClick={() => { setShowAllCheers(!showAllCheers); updateCheers(); }}
                     style={{
                       display: 'flex',
                       gap: '0.25rem',
@@ -467,11 +481,8 @@ export function WorkoutCard({ workout, currentUserId, onCheer, onDelete, onEdit 
                     )}
                   </button>
                   {showAllCheers && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '100%',
-                      right: 0,
-                      marginTop: '0.5rem',
+                    <div ref={cheersRefs.setFloating} style={{
+                      ...cheersStyles,
                       background: 'var(--surface)',
                       border: '1px solid var(--border)',
                       borderRadius: '0.5rem',

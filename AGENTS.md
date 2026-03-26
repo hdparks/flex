@@ -93,12 +93,23 @@ Create shared types in `src/lib/types.ts` for common data shapes:
 - Use named exports for page components
 - Prefer functional components with hooks
 
-```typescript
-// Page component (named export)
-export default function Dashboard() { ... }
+### Popups & Dropdowns
+Use **@floating-ui/react** for all popups, dropdowns, and floating UI elements. It handles edge detection, viewport overflow, and flipping automatically.
 
-// Helper component (can be in same file)
-function WorkoutCard({ workout }: { workout: Workout }) { ... }
+```typescript
+import { useFloating, flip, shift } from '@floating-ui/react';
+
+const { refs, floatingStyles } = useFloating({
+  placement: 'top',
+  middleware: [flip(), shift({ padding: 8 })],
+});
+
+return (
+  <>
+    <button ref={refs.setReference}>Trigger</button>
+    <div ref={refs.setFloating} style={floatingStyles}>Content</div>
+  </>
+);
 ```
 
 ### API Routes
