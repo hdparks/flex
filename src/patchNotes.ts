@@ -13,10 +13,17 @@ export interface Release {
 
 export const patchNotes: Release[] = [
   {
+    version: '0.1.1',
+    date: '2026-03-28',
+    changes: [
+      { type: 'fix', text: 'Week in Review no longer redirects you to earlier weeks on every dashboard visit - it now properly tracks which weeks you\'ve seen.' },
+    ]
+  },
+  {
     version: '0.1.0',
     date: '2026-03-28',
     changes: [
-      { type: 'new', text: 'Profile pictures now save automatically when selected - no need to click the Save button!' },
+      { type: 'improvement', text: 'Profile pictures now save automatically when selected - no need to click the Save button!' },
       { type: 'new', text: 'Get a confetti celebration when you log a workout!' },
       { type: 'new', text: 'Receive push notifications when someone cheers or comments on your workout.' },
       { type: 'new', text: 'Introducing Week in Review - a fun slideshow summary of your weekly workouts with animated stats and comparisons to previous weeks!' },
