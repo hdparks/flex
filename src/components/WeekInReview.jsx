@@ -170,6 +170,7 @@ export default function WeekInReview({ userId, week, year, onClose, isModal = fa
       }
     };
     fetchData();
+    localStorage.setItem(`weekReviewSeen-${year}-${week}`, new Date().toISOString());
   }, [userId, week, year]);
 
   const nextSlide = () => {
