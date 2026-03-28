@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
+import Link from 'next/link';
 import { api } from '../../../lib/api';
 import { useSession } from 'next-auth/react';
 import { useToast } from '../../../components/ToastProvider';
@@ -271,6 +272,14 @@ export default function ProfilePage() {
           </button>
         </div>
       )}
+
+      <div className="card" style={{ marginTop: '1rem' }}>
+        <Link href={`/user/${session?.user?.id}/week-in-review/${new Date().getFullYear()}-${Math.ceil((new Date() - new Date(new Date().getFullYear(), 0, 1)) / (7 * 24 * 60 * 60 * 1000))}`} style={{ textDecoration: 'none' }}>
+          <button className="btn btn-secondary" style={{ width: '100%' }}>
+            📊 Week in Review
+          </button>
+        </Link>
+      </div>
 
       {session?.user?.isAdmin && (
         <div className="card" style={{ marginTop: '2rem', border: '2px dashed var(--border)' }}>

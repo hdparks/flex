@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useSession } from 'next-auth/react';
 import { useToast } from '@/components/ToastProvider';
@@ -8,6 +9,7 @@ import { CountdownTimer } from '@/components/CountdownTimer';
 import { WorkoutCard } from '@/components/WorkoutCard';
 
 export default function Dashboard() {
+  const router = useRouter();
   const { data: session } = useSession();
   const { toast } = useToast();
   const [feed, setFeed] = useState([]);
@@ -34,6 +36,20 @@ export default function Dashboard() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [period]);
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    const now = new Date();
+    const year = now.getFullYear();
+    const week = Math.ceil((now - new Date(year, 0, 1)) / (7 * 24 * 60 * 60 * 1000));
+    const lastWeekReviewDate = localStorage.getItem(`weekReviewSeen-${year}-${week}`);
+    if (!lastWeekReviewDate && week > 1) {
+      router.push(`/user/${session.user.id}/week-in-review/${year}-${week - 1}`);
+    } else if (!lastWeekReviewDate && week === 1) {
+      router.push(`/user/${session.user.id}/week-in-review/${year - 1}-52`);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore || feed.length === 0) return;
