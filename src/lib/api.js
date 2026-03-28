@@ -94,6 +94,7 @@ export const api = {
   },
   users: {
     get: (id) => request(`/users/${id}`),
+    getWeekInReview: (userId, week) => request(`/users/${userId}/week-in-review/${week}`),
   },
   races: {
     getNext: () => request('/races'),

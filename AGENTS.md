@@ -214,30 +214,18 @@ After completing work, prompt the user to add an entry to `src/patchNotes.ts`:
 { type: 'new' | 'fix' | 'update' | 'removal', text: 'description', credit?: 'user' }
 ```
 
-## Automated Bug Processor
-
-Flex has an automated bug-fixing system that uses OpenCode to fix bugs reported by users.
-
-### How It Works
-1. User submits bug via the app (stored with `status = 'pending'`)
-2. Bug processor polls database every 2 minutes
-3. Creates OpenCode session with bug details
-4. AI explores code, identifies and fixes the bug
-5. Creates PR with changes for human review
-6. Human merges PR → Vercel deploys
+## OpenCode-Assisted Bug Processing
 
 ### Using the Fix-Bug Skill
 
-Use the `/fix-bug` skill to investigate and fix bugs from the `bug_reports` table.
+User can employ the `/fix-bug` skill to quickly investigate and fix bugs from the `bug_reports` table.
 
 **Workflow:**
 1. Run `turso db shell flex "SELECT * FROM bug_reports WHERE status = 'open';"` to fetch open bug reports
 2. Use the `fix-bug` skill to investigate the issue
 3. Apply the fix
-4. Manually handle commits and PRs
 
 **Bug Status Flow:**
 - `open` → New bug reports waiting for processing
 - `in_progress` → OpenCode is actively fixing the bug
 - `addressed` → Bug has been fixed
-- `needs_manual_review` → Could not auto-fix, needs human attention

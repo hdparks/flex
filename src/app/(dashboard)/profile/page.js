@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
+import Link from 'next/link';
 import { api } from '../../../lib/api';
 import { useSession } from 'next-auth/react';
 import { useToast } from '../../../components/ToastProvider';
@@ -50,7 +51,7 @@ export default function ProfilePage() {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -58,18 +59,35 @@ export default function ProfilePage() {
     const maxSize = 5 * 1024 * 1024; // 5MB
 
     if (!allowedTypes.includes(file.type)) {
-      alert('Please select a valid image file (PNG, JPEG, or WebP)');
+      toast('Please select a valid image file (PNG, JPEG, or WebP)', 'error');
       return;
     }
 
     if (file.size > maxSize) {
-      alert('Image size must be less than 5MB');
+      toast('Image size must be less than 5MB', 'error');
       return;
     }
 
     const reader = new FileReader();
-    reader.onload = () => {
-      setAvatarPreview(reader.result);
+    reader.onload = async () => {
+      const base64Data = reader.result;
+      setAvatarPreview(base64Data);
+      
+      setSaving(true);
+      try {
+        const updated = await api.profile.update({ avatar_url: base64Data });
+        setUser(updated);
+        await updateSession({
+          ...session,
+          user: { ...session.user, image: updated.avatar_url },
+        });
+        toast('Profile photo updated!', 'success');
+      } catch (err) {
+        toast(err.message || 'Failed to update photo', 'error');
+        setAvatarPreview(user?.avatar_url || '');
+      } finally {
+        setSaving(false);
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -254,6 +272,14 @@ export default function ProfilePage() {
           </button>
         </div>
       )}
+
+      <div className="card" style={{ marginTop: '1rem' }}>
+        <Link href={`/user/${session?.user?.id}/week-in-review/${new Date().getFullYear()}-${Math.ceil((new Date() - new Date(new Date().getFullYear(), 0, 1)) / (7 * 24 * 60 * 60 * 1000))}`} style={{ textDecoration: 'none' }}>
+          <button className="btn btn-secondary" style={{ width: '100%' }}>
+            📊 Week in Review
+          </button>
+        </Link>
+      </div>
 
       {session?.user?.isAdmin && (
         <div className="card" style={{ marginTop: '2rem', border: '2px dashed var(--border)' }}>

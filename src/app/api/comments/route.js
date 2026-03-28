@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { v4 as uuid } from 'uuid';
 import db from '@/lib/db';
 import { auth } from '@/lib/auth-config';
+import { sendNotification } from '@/lib/push';
 
 async function canAccessWorkout(sessionUserId, workoutId) {
   const workout = await db.prepare('SELECT user_id FROM workouts WHERE id = ?').get(workoutId);
@@ -92,6 +93,16 @@ export async function POST(request) {
       JOIN users u ON c.user_id = u.id
       WHERE c.id = ?
     `).get(id);
+
+    if (workout.user_id !== session.user.id) {
+      const fromUser = await db.prepare('SELECT username FROM users WHERE id = ?').get(session.user.id);
+      await sendNotification(
+        workout.user_id,
+        'New Comment!',
+        `${fromUser.username} commented on your workout`,
+        `/workouts/${workout.id}`
+      );
+    }
 
     return NextResponse.json(comment, { status: 201 });
   } catch (err) {
