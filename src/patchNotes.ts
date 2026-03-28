@@ -13,6 +13,14 @@ export interface Release {
 
 export const patchNotes: Release[] = [
   {
+    version: '0.1.2',
+    date: '2026-03-28',
+    changes: [
+      { type: 'fix', text: 'Fixing notification links that led to nowhere, now they just open the feed like normal.' }, 
+      { type: 'fix', text: 'One more try, hopefully Brooklyn is able to update her profile picture for real this time.' }
+    ]
+  },
+  {
     version: '0.1.1',
     date: '2026-03-28',
     changes: [

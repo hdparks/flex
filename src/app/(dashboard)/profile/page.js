@@ -2,9 +2,11 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { api } from '../../../lib/api';
+import { getCurrentWeek } from '../../../lib/week-utils';
 import { useSession } from 'next-auth/react';
 import { useToast } from '../../../components/ToastProvider';
 import { enableNotifications } from '../../../components/ServiceWorkerRegistration';
+import { resizeImage } from '../../../lib/imageUtils';
 
 export default function ProfilePage() {
   const { data: session, update: updateSession } = useSession();
@@ -17,6 +19,7 @@ export default function ProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState('');
   const [notificationStatus, setNotificationStatus] = useState('default');
   const fileInputRef = useRef(null);
+  const currentWeek = getCurrentWeek();
 
   useEffect(() => {
     if (typeof Notification !== 'undefined') {
@@ -56,40 +59,40 @@ export default function ProfilePage() {
     if (!file) return;
 
     const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
-    const maxSize = 5 * 1024 * 1024; // 5MB
 
     if (!allowedTypes.includes(file.type)) {
       toast('Please select a valid image file (PNG, JPEG, or WebP)', 'error');
       return;
     }
 
-    if (file.size > maxSize) {
-      toast('Image size must be less than 5MB', 'error');
+    if (file.size > 4 * 1024 * 1024) {
+      toast('Image size must be less than 4MB', 'error');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64Data = reader.result;
-      setAvatarPreview(base64Data);
-      
-      setSaving(true);
-      try {
-        const updated = await api.profile.update({ avatar_url: base64Data });
-        setUser(updated);
-        await updateSession({
-          ...session,
-          user: { ...session.user, image: updated.avatar_url },
-        });
-        toast('Profile photo updated!', 'success');
-      } catch (err) {
-        toast(err.message || 'Failed to update photo', 'error');
-        setAvatarPreview(user?.avatar_url || '');
-      } finally {
-        setSaving(false);
-      }
-    };
-    reader.readAsDataURL(file);
+    setSaving(true);
+    try {
+      const resizedBase64 = await resizeImage(file, {
+        maxWidth: 400,
+        maxHeight: 400,
+        quality: 0.85,
+      });
+
+      setAvatarPreview(resizedBase64);
+
+      const updated = await api.profile.update({ avatar_url: resizedBase64 });
+      setUser(updated);
+      await updateSession({
+        ...session,
+        user: { ...session.user, image: updated.avatar_url },
+      });
+      toast('Profile photo updated!', 'success');
+    } catch (err) {
+      toast(err.message || 'Failed to update photo', 'error');
+      setAvatarPreview(user?.avatar_url || '');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSave = async () => {
@@ -274,7 +277,7 @@ export default function ProfilePage() {
       )}
 
       <div className="card" style={{ marginTop: '1rem' }}>
-        <Link href={`/user/${session?.user?.id}/week-in-review/${new Date().getFullYear()}-${Math.ceil((new Date() - new Date(new Date().getFullYear(), 0, 1)) / (7 * 24 * 60 * 60 * 1000))}`} style={{ textDecoration: 'none' }}>
+        <Link href={`/user/${session?.user?.id}/week-in-review/${currentWeek.year}-${currentWeek.week}`} style={{ textDecoration: 'none' }}>
           <button className="btn btn-secondary" style={{ width: '100%' }}>
             📊 Week in Review
           </button>

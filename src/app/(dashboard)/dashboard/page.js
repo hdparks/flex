@@ -3,6 +3,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { getCurrentWeek } from '@/lib/week-utils';
 import { useSession } from 'next-auth/react';
 import { useToast } from '@/components/ToastProvider';
 import { CountdownTimer } from '@/components/CountdownTimer';
@@ -39,14 +40,18 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!session?.user?.id) return;
-    const now = new Date();
-    const year = now.getFullYear();
-    const week = Math.ceil((now - new Date(year, 0, 1)) / (7 * 24 * 60 * 60 * 1000));
-    const lastWeekReviewDate = localStorage.getItem(`weekReviewSeen-${year}-${week}`);
-    if (!lastWeekReviewDate && week > 1) {
-      router.push(`/user/${session.user.id}/week-in-review/${year}-${week - 1}`);
-    } else if (!lastWeekReviewDate && week === 1) {
-      router.push(`/user/${session.user.id}/week-in-review/${year - 1}-52`);
+    const { year, week } = getCurrentWeek();
+    
+    let targetYear = year;
+    let targetWeek = week - 1;
+    if (targetWeek < 1) {
+      targetYear = year - 1;
+      targetWeek = 52;
+    }
+    
+    const lastWeekReviewDate = localStorage.getItem(`weekReviewSeen-${targetYear}-${targetWeek}`);
+    if (!lastWeekReviewDate) {
+      router.push(`/user/${session.user.id}/week-in-review/${targetYear}-${targetWeek}`);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);

@@ -76,7 +76,7 @@ export async function POST(request) {
         workout.user_id,
         'New Cheer!',
         `${fromUser.username} cheered on your workout`,
-        `/workouts/${workout.id}`
+        '/dashboard'
       );
     }
 
