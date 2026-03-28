@@ -1,26 +1,6 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-
-function getWeekDates(year, week) {
-  const simple = new Date(year, 0, 1 + (week - 1) * 7);
-  const dow = simple.getDay();
-  const startDate = new Date(simple);
-  startDate.setDate(simple.getDate() - (dow === 0 ? 6 : dow - 1));
-  const endDate = new Date(startDate);
-  endDate.setDate(startDate.getDate() + 6);
-  return {
-    startDate: startDate.toISOString().split('T')[0],
-    endDate: endDate.toISOString().split('T')[0]
-  };
-}
-
-function getWeekNumber(date) {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-}
+import { getWeekNumber, getWeekDates, getCurrentWeek } from '@/lib/week-utils';
 
 async function getWeekStats(userId, startDate, endDate) {
   const workouts = await db.prepare(`
@@ -128,8 +108,7 @@ export async function GET(request, { params }) {
 
     const { startDate, endDate } = getWeekDates(year, weekNum);
     
-    const currentWeek = getWeekNumber(new Date());
-    const currentYear = new Date().getFullYear();
+    const { year: currentYear, week: currentWeek } = getCurrentWeek();
     const weekIsComplete = (year < currentYear) || (year === currentYear && weekNum < currentWeek);
 
     const stats = await getWeekStats(id, startDate, endDate);

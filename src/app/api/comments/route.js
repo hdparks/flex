@@ -100,7 +100,7 @@ export async function POST(request) {
         workout.user_id,
         'New Comment!',
         `${fromUser.username} commented on your workout`,
-        `/workouts/${workout.id}`
+        '/dashboard'
       );
     }
 

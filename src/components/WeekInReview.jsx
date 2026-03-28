@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
+import { getCurrentWeek } from '@/lib/week-utils';
 
 const emojiMap = {
   run: '🏃',
@@ -196,9 +197,7 @@ export default function WeekInReview({ userId, week, year, onClose, isModal = fa
   };
 
   const goToLatest = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const week = Math.ceil((now - new Date(year, 0, 1)) / (7 * 24 * 60 * 60 * 1000));
+    const { year, week } = getCurrentWeek();
     router.push(`/user/${userId}/week-in-review/${year}-${week}`);
   };
 
