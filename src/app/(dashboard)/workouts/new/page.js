@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import confetti from 'canvas-confetti';
 import { api } from '../../../../lib/api';
 import { toLocalDatetimeInput, fromLocalDatetimeInput } from '../../../../lib/dateUtils';
 import { useToast } from '../../../../components/ToastProvider';
@@ -49,6 +50,12 @@ export default function NewWorkout() {
       }
       
       await api.workouts.create(payload);
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e'],
+      });
       router.push('/workouts');
     } catch (err) {
       toast(err.message, 'error');
