@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { WORKOUT_TYPES } from '@/lib/constants';
 import { toLocalDatetimeInput, fromLocalDatetimeInput } from '@/lib/dateUtils';
 import { TrashIcon } from '@/components/TrashIcon';
+import { processImage } from '@/lib/imageUtils';
 import type { Workout } from '@/lib/types';
 
 interface WorkoutEditModalProps {
@@ -32,15 +33,21 @@ export function WorkoutEditModal({ workout, onSave, onDelete, onClose }: Workout
   const [imagePreview, setImagePreview] = useState<string | null>(workout.image || null);
   const [imageFile, setImageFile] = useState<File | null>(null);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        setImageFile(file);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    try {
+      const processed = await processImage(file, {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 0.8,
+        maxSizeBytes: 4 * 1024 * 1024,
+      });
+      setImagePreview(processed);
+      setImageFile(file);
+    } catch (err) {
+      alert(err.message || 'Failed to process image');
     }
   };
 
