@@ -6,7 +6,7 @@ import { getCurrentWeek } from '../../../lib/week-utils';
 import { useSession } from 'next-auth/react';
 import { useToast } from '../../../components/ToastProvider';
 import { enableNotifications } from '../../../components/ServiceWorkerRegistration';
-import { resizeImage } from '../../../lib/imageUtils';
+import { processImage } from '../../../lib/imageUtils';
 
 export default function ProfilePage() {
   const { data: session, update: updateSession } = useSession();
@@ -72,10 +72,11 @@ export default function ProfilePage() {
 
     setSaving(true);
     try {
-      const resizedBase64 = await resizeImage(file, {
+      const resizedBase64 = await processImage(file, {
         maxWidth: 400,
         maxHeight: 400,
         quality: 0.85,
+        maxSizeBytes: 4 * 1024 * 1024,
       });
 
       setAvatarPreview(resizedBase64);
