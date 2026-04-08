@@ -13,6 +13,13 @@ export interface Release {
 
 export const patchNotes: Release[] = [
   {
+    version: '0.1.4',
+    date: '2026-04-07',
+    changes: [
+      { type: 'fix', text: 'Fixed same issue with the selfie-style reactions!' },
+    ]
+  },
+  {
     version: '0.1.3',
     date: '2026-04-07',
     changes: [

@@ -8,6 +8,7 @@ import { useSession } from 'next-auth/react';
 import { ImagePlus, Smile, CirclePlus, Users } from 'lucide-react';
 import { useToast } from '@/components/ToastProvider';
 import { TrashIcon } from '@/components/TrashIcon';
+import { processImage } from '@/lib/imageUtils';
 import type { Workout } from '@/lib/types';
 
 interface WorkoutCardProps {
@@ -91,7 +92,7 @@ function CheerButton({ workoutId, onCheer, disabled }: { workoutId: string; onCh
     }
   };
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     if (videoRef.current && videoRef.current.readyState >= 2) {
       const canvas = document.createElement('canvas');
       canvas.width = videoRef.current.videoWidth;
@@ -99,7 +100,16 @@ function CheerButton({ workoutId, onCheer, disabled }: { workoutId: string; onCh
       const ctx = canvas.getContext('2d');
       ctx.drawImage(videoRef.current, 0, 0);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
-      setCapturedImage(dataUrl);
+      
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+      const processed = await processImage(file, {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 0.8,
+        maxSizeBytes: 4 * 1024 * 1024,
+      });
+      setCapturedImage(processed);
     }
   };
 
