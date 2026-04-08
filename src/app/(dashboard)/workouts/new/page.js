@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import confetti from 'canvas-confetti';
 import { api } from '../../../../lib/api';
 import { toLocalDatetimeInput, fromLocalDatetimeInput } from '../../../../lib/dateUtils';
+import { processImage } from '../../../../lib/imageUtils';
 import { useToast } from '../../../../components/ToastProvider';
 
 const WORKOUT_TYPES = ['run', 'strength', 'cardio', 'hiit', 'flexibility', 'sport', 'other'];
@@ -22,15 +23,21 @@ export default function NewWorkout() {
     completed_at: toLocalDatetimeInput(new Date().toISOString())
   });
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-        setImageFile(file);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    try {
+      const processed = await processImage(file, {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 0.8,
+        maxSizeBytes: 4 * 1024 * 1024,
+      });
+      setImagePreview(processed);
+      setImageFile(file);
+    } catch (err) {
+      toast(err.message || 'Failed to process image', 'error');
     }
   };
 
