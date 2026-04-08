@@ -13,6 +13,13 @@ export interface Release {
 
 export const patchNotes: Release[] = [
   {
+    version: '0.1.3',
+    date: '2026-04-07',
+    changes: [
+      { type: 'fix', text: 'Fixed a bug which caused some workout images to not upload. Shoutout Bobby and Brooklyn for helping me track this one down.' },
+    ]
+  },
+  {
     version: '0.1.2',
     date: '2026-03-28',
     changes: [
